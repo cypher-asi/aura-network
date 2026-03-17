@@ -1,14 +1,13 @@
-use axum::{routing::get, Json, Router};
+mod handlers;
+mod router;
+mod state;
+
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "status": "ok",
-        "timestamp": chrono::Utc::now().to_rfc3339()
-    }))
-}
+use aura_network_auth::{InternalToken, TokenValidator};
+use state::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -23,21 +22,33 @@ async fn main() {
 
     let database_url = std::env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
-
+    let auth0_domain = std::env::var("AUTH0_DOMAIN")
+        .expect("AUTH0_DOMAIN must be set");
+    let auth0_audience = std::env::var("AUTH0_AUDIENCE")
+        .expect("AUTH0_AUDIENCE must be set");
+    let cookie_secret = std::env::var("AUTH_COOKIE_SECRET")
+        .expect("AUTH_COOKIE_SECRET must be set");
+    let internal_token = std::env::var("INTERNAL_SERVICE_TOKEN")
+        .expect("INTERNAL_SERVICE_TOKEN must be set");
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse()
         .expect("PORT must be a valid number");
 
-    let _pool = aura_network_db::create_pool(&database_url)
+    let pool = aura_network_db::create_pool(&database_url)
         .await
         .expect("Failed to create database pool");
 
     tracing::info!("Database connected and migrations applied");
 
-    // TODO: Wire pool into AppState when adding domain routes
-    let app = Router::new()
-        .route("/health", get(health))
+    let state = AppState {
+        pool,
+        validator: TokenValidator::new(auth0_domain, auth0_audience, cookie_secret),
+        internal_token: InternalToken(internal_token),
+    };
+
+    let app = router::create_router()
+        .with_state(state)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
 

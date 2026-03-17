@@ -153,6 +153,7 @@ dependencies = [
 name = "aura-network-server"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aura-network-agents",
  "aura-network-auth",
  "aura-network-core",
@@ -166,11 +167,14 @@ dependencies = [
  "axum",
  "chrono",
  "dotenvy",
+ "serde",
  "serde_json",
+ "sqlx",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
