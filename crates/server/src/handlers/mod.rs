@@ -6,6 +6,7 @@ pub mod feed;
 pub mod social;
 pub mod usage;
 pub mod internal;
+pub mod ws;
 
 use axum::Json;
 

@@ -41,10 +41,13 @@ async fn main() {
 
     tracing::info!("Database connected and migrations applied");
 
+    let (events_tx, _) = tokio::sync::broadcast::channel::<String>(256);
+
     let state = AppState {
         pool,
         validator: TokenValidator::new(auth0_domain, auth0_audience, cookie_secret),
         internal_token: InternalToken(internal_token),
+        events_tx,
     };
 
     let app = router::create_router()

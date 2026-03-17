@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use tokio::sync::broadcast;
 
 use aura_network_auth::{InternalToken, TokenValidator};
 
@@ -7,6 +8,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub validator: TokenValidator,
     pub internal_token: InternalToken,
+    pub events_tx: broadcast::Sender<String>,
 }
 
 impl AsRef<PgPool> for AppState {
