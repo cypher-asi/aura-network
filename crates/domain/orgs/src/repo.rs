@@ -10,14 +10,27 @@ use crate::models::{
 };
 
 fn generate_slug(name: &str) -> String {
-    let base: String = name
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '-' })
-        .collect();
-    let trimmed = base.trim_matches('-').to_string();
+    let mut slug = String::new();
+    let mut prev_hyphen = true; // prevent leading hyphen
+    for c in name.to_lowercase().chars() {
+        if c.is_alphanumeric() {
+            slug.push(c);
+            prev_hyphen = false;
+        } else if !prev_hyphen {
+            slug.push('-');
+            prev_hyphen = true;
+        }
+    }
+    let trimmed = slug.trim_matches('-');
     let short_id = &Uuid::new_v4().to_string()[..8];
     format!("{trimmed}-{short_id}")
+}
+
+fn validate_role(role: &str) -> Result<(), AppError> {
+    match role {
+        "owner" | "admin" | "member" => Ok(()),
+        _ => Err(AppError::BadRequest(format!("Invalid role: '{role}'. Must be owner, admin, or member"))),
+    }
 }
 
 pub async fn create(
@@ -140,6 +153,10 @@ pub async fn update_member(
     target_user_id: Uuid,
     input: &UpdateMemberRequest,
 ) -> Result<OrgMember, AppError> {
+    if let Some(ref role) = input.role {
+        validate_role(role)?;
+    }
+
     sqlx::query_as::<_, OrgMember>(
         r#"
         UPDATE org_members SET
@@ -252,7 +269,6 @@ pub async fn accept_invite(
     }
 
     if Utc::now() > invite.expires_at {
-        // Mark as expired
         sqlx::query("UPDATE org_invites SET status = 'expired' WHERE id = $1")
             .bind(invite.id)
             .execute(pool)
@@ -273,16 +289,17 @@ pub async fn accept_invite(
         return Err(AppError::Conflict("Already a member of this organization".into()));
     }
 
-    // Accept the invite
+    // Accept invite and create membership atomically
+    let mut tx = pool.begin().await?;
+
     sqlx::query(
         "UPDATE org_invites SET status = 'accepted', accepted_by = $2, accepted_at = NOW() WHERE id = $1",
     )
     .bind(invite.id)
     .bind(user_id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
-    // Create membership
     let member = sqlx::query_as::<_, OrgMember>(
         r#"
         INSERT INTO org_members (org_id, user_id, display_name, role)
@@ -293,8 +310,10 @@ pub async fn accept_invite(
     .bind(invite.org_id)
     .bind(user_id)
     .bind(&input.display_name)
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
+
+    tx.commit().await?;
 
     Ok(member)
 }
