@@ -59,7 +59,8 @@ pub async fn delete_agent(
     auth: AuthUser,
     State(state): State<AppState>,
     Path(agent_id): Path<Uuid>,
-) -> Result<(), AppError> {
+) -> Result<axum::http::StatusCode, AppError> {
     let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
-    handlers::delete_agent(&state.pool, agent_id, user.id).await
+    handlers::delete_agent(&state.pool, agent_id, user.id).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }

@@ -13,7 +13,7 @@ pub struct TokenUsageDaily {
     pub date: NaiveDate,
     pub input_tokens: i64,
     pub output_tokens: i64,
-    // Note: stored as NUMERIC(10,4) in DB, cast to float8 in aggregate queries
+    pub estimated_cost_usd: f64,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]

@@ -1,3 +1,5 @@
 /target
 .env
 *.swp
+*.pdb
+.DS_Store

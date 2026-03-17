@@ -45,6 +45,8 @@ pub async fn create(
 
     let slug = generate_slug(&input.name);
 
+    let mut tx = pool.begin().await?;
+
     let org = sqlx::query_as::<_, Org>(
         r#"
         INSERT INTO organizations (name, slug, owner_user_id)
@@ -55,10 +57,9 @@ pub async fn create(
     .bind(input.name.trim())
     .bind(&slug)
     .bind(user_id)
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
 
-    // Auto-create owner member
     sqlx::query(
         r#"
         INSERT INTO org_members (org_id, user_id, display_name, role)
@@ -68,8 +69,10 @@ pub async fn create(
     .bind(org.id)
     .bind(user_id)
     .bind(display_name)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    tx.commit().await?;
 
     Ok(org)
 }

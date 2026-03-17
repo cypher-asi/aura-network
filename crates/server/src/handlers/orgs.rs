@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use aura_network_auth::AuthUser;
 use aura_network_core::AppError;
-use aura_network_orgs::{handlers, models};
+use aura_network_orgs::{handlers, models, repo as org_repo};
 use aura_network_users::repo as user_repo;
 
 use crate::state::AppState;
@@ -29,10 +29,12 @@ pub async fn list_orgs(
 }
 
 pub async fn get_org(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<models::Org>, AppError> {
+    let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
+    org_repo::get_member(&state.pool, org_id, user.id).await?;
     let org = handlers::get_org(&state.pool, org_id).await?;
     Ok(Json(org))
 }
@@ -73,9 +75,10 @@ pub async fn remove_member(
     auth: AuthUser,
     State(state): State<AppState>,
     Path((org_id, target_user_id)): Path<(Uuid, Uuid)>,
-) -> Result<(), AppError> {
+) -> Result<axum::http::StatusCode, AppError> {
     let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
-    handlers::remove_member(&state.pool, org_id, user.id, target_user_id).await
+    handlers::remove_member(&state.pool, org_id, user.id, target_user_id).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
 pub async fn create_invite(

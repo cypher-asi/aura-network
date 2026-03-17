@@ -167,7 +167,12 @@ pub async fn check_budget(
 
 pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, AppError> {
     let stats = sqlx::query_as::<_, PlatformStats>(
-        "SELECT * FROM platform_stats ORDER BY date DESC LIMIT 1",
+        r#"
+        SELECT id, date, daily_active_users, total_users, new_signups, projects_created,
+               total_input_tokens, total_output_tokens, total_revenue_usd::float8 as total_revenue_usd,
+               created_at
+        FROM platform_stats ORDER BY date DESC LIMIT 1
+        "#,
     )
     .fetch_optional(pool)
     .await?;

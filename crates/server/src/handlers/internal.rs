@@ -1,4 +1,5 @@
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use axum::Json;
 use uuid::Uuid;
 
@@ -22,6 +23,15 @@ pub async fn post_activity(
     Json(input): Json<aura_network_feed::models::CreateActivityEventRequest>,
 ) -> Result<Json<aura_network_feed::models::ActivityEvent>, AppError> {
     let event = aura_network_feed::handlers::post_activity(&state.pool, input).await?;
+
+    // Broadcast to WebSocket clients
+    if let Ok(json) = serde_json::to_string(&serde_json::json!({
+        "type": "activity.new",
+        "data": &event
+    })) {
+        let _ = state.events_tx.send(json);
+    }
+
     Ok(Json(event))
 }
 
@@ -29,8 +39,9 @@ pub async fn record_usage(
     _auth: InternalAuth,
     State(state): State<AppState>,
     Json(input): Json<aura_network_usage::models::RecordUsageRequest>,
-) -> Result<(), AppError> {
-    aura_network_usage::handlers::record_usage(&state.pool, input).await
+) -> Result<StatusCode, AppError> {
+    aura_network_usage::handlers::record_usage(&state.pool, input).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn check_budget(
