@@ -203,7 +203,10 @@ dependencies = [
 name = "aura-network-users"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "aura-network-auth",
  "aura-network-core",
+ "axum",
  "chrono",
  "serde",
  "serde_json",
