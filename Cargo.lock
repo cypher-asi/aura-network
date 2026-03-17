@@ -75,6 +75,7 @@ dependencies = [
 name = "aura-network-auth"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aura-network-core",
  "axum",
  "jsonwebtoken",
