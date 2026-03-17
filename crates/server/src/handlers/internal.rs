@@ -1,3 +1,9 @@
+// Integration contract with aura-swarm:
+// - User lookup uses zero_user_id (text string from zOS), not internal UUID
+// - Agent IDs in usage/activity payloads must be aura-network UUIDs
+//   (swarm should look up agent UUID via API, not use its internal blake3 hash)
+// - All payloads use camelCase JSON
+
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;

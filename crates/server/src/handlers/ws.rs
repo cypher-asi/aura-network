@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
@@ -7,6 +9,8 @@ use tokio::sync::broadcast;
 use aura_network_core::AppError;
 
 use crate::state::AppState;
+
+const PING_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Deserialize)]
 pub struct WsQuery {
@@ -22,7 +26,6 @@ pub async fn ws_events(
         .token
         .ok_or_else(|| AppError::Unauthorized("Missing token query parameter".into()))?;
 
-    // Validate JWT
     let _claims = state
         .validator
         .validate(&token)
@@ -35,6 +38,8 @@ pub async fn ws_events(
 }
 
 async fn handle_ws(mut socket: WebSocket, mut rx: broadcast::Receiver<String>) {
+    let mut ping_interval = tokio::time::interval(PING_INTERVAL);
+
     loop {
         tokio::select! {
             result = rx.recv() => {
@@ -53,7 +58,13 @@ async fn handle_ws(mut socket: WebSocket, mut rx: broadcast::Receiver<String>) {
             result = socket.recv() => {
                 match result {
                     Some(Ok(Message::Close(_))) | None => break,
-                    _ => {} // ignore client messages
+                    Some(Ok(Message::Pong(_))) => {} // keepalive response received
+                    _ => {} // ignore other client messages
+                }
+            }
+            _ = ping_interval.tick() => {
+                if socket.send(Message::Ping(vec![].into())).await.is_err() {
+                    break;
                 }
             }
         }

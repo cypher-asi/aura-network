@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Macro for generating strongly-typed UUID ID wrappers with sqlx integration.
+/// Not currently used — domain crates use raw `Uuid` for simplicity.
+/// Available for adoption when type safety across ID boundaries is needed.
 macro_rules! define_id {
     ($name:ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -50,14 +53,3 @@ macro_rules! define_id {
         }
     };
 }
-
-define_id!(UserId);
-define_id!(ProfileId);
-define_id!(OrgId);
-define_id!(OrgMemberId);
-define_id!(InviteId);
-define_id!(AgentId);
-define_id!(ProjectId);
-define_id!(ActivityEventId);
-define_id!(CommentId);
-define_id!(FollowId);

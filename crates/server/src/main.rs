@@ -3,6 +3,7 @@ mod router;
 mod state;
 
 use tower_http::cors::CorsLayer;
+use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -50,9 +51,29 @@ async fn main() {
         events_tx,
     };
 
+    let cors = match std::env::var("CORS_ORIGINS") {
+        Ok(origins) => {
+            let allowed: Vec<_> = origins
+                .split(',')
+                .filter_map(|s| s.trim().parse().ok())
+                .collect();
+            tracing::info!(origins = ?allowed, "CORS restricted to specified origins");
+            CorsLayer::new()
+                .allow_origin(allowed)
+                .allow_methods(tower_http::cors::Any)
+                .allow_headers(tower_http::cors::Any)
+        }
+        Err(_) => {
+            tracing::warn!("CORS_ORIGINS not set — allowing all origins (development mode)");
+            CorsLayer::permissive()
+        }
+    };
+
     let app = router::create_router()
         .with_state(state)
-        .layer(CorsLayer::permissive())
+        .layer(cors)
+        .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024)) // 2MB max request body
+        .layer(tower::limit::ConcurrencyLimitLayer::new(512)) // max 512 concurrent requests
         .layer(TraceLayer::new_for_http());
 
     let addr = format!("0.0.0.0:{port}");
