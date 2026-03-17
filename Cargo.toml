@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/db",
+    "crates/auth",
+    "crates/server",
+    "crates/domain/users",
+    "crates/domain/orgs",
+    "crates/domain/agents",
+    "crates/domain/projects",
+    "crates/domain/feed",
+    "crates/domain/social",
+    "crates/domain/usage",
+]
+
+[workspace.dependencies]
+# Shared dependencies pinned at workspace level
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+dotenvy = "0.15"
+reqwest = { version = "0.12", features = ["json"] }
+jsonwebtoken = "9"
+
+# Internal crate references
+aura-network-core = { path = "crates/core" }
+aura-network-db = { path = "crates/db" }
+aura-network-auth = { path = "crates/auth" }
+aura-network-users = { path = "crates/domain/users" }
+aura-network-orgs = { path = "crates/domain/orgs" }
+aura-network-agents = { path = "crates/domain/agents" }
+aura-network-projects = { path = "crates/domain/projects" }
+aura-network-feed = { path = "crates/domain/feed" }
+aura-network-social = { path = "crates/domain/social" }
+aura-network-usage = { path = "crates/domain/usage" }

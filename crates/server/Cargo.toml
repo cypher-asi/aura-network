@@ -1,0 +1,23 @@
+[package]
+name = "aura-network-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aura-network-core = { workspace = true }
+aura-network-db = { workspace = true }
+aura-network-auth = { workspace = true }
+aura-network-users = { workspace = true }
+aura-network-orgs = { workspace = true }
+aura-network-agents = { workspace = true }
+aura-network-projects = { workspace = true }
+aura-network-feed = { workspace = true }
+aura-network-social = { workspace = true }
+aura-network-usage = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tower-http = { workspace = true }
+dotenvy = { workspace = true }
+serde_json = { workspace = true }
