@@ -1,4 +1,6 @@
+#[allow(unused_imports, unused_macros)]
 use serde::{Deserialize, Serialize};
+#[allow(unused_imports)]
 use uuid::Uuid;
 
 /// Macro for generating strongly-typed UUID ID wrappers with sqlx integration.

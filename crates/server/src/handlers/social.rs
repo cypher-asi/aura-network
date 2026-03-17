@@ -6,7 +6,6 @@ use uuid::Uuid;
 use aura_network_auth::AuthUser;
 use aura_network_core::AppError;
 use aura_network_social::{handlers, models};
-use aura_network_users::repo as user_repo;
 
 use crate::state::AppState;
 
@@ -22,8 +21,8 @@ pub async fn follow(
     State(state): State<AppState>,
     Json(input): Json<models::FollowRequest>,
 ) -> Result<Json<models::Follow>, AppError> {
-    let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
-    let profile = user_repo::get_profile_by_user_id(&state.pool, user.id).await?;
+    let user = super::resolve_user(&state.pool, &auth).await?;
+    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     let follow = handlers::follow(&state.pool, profile.id, input.target_profile_id).await?;
     Ok(Json(follow))
 }
@@ -32,18 +31,19 @@ pub async fn unfollow(
     auth: AuthUser,
     State(state): State<AppState>,
     Path(target_profile_id): Path<Uuid>,
-) -> Result<(), AppError> {
-    let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
-    let profile = user_repo::get_profile_by_user_id(&state.pool, user.id).await?;
-    handlers::unfollow(&state.pool, profile.id, target_profile_id).await
+) -> Result<axum::http::StatusCode, AppError> {
+    let user = super::resolve_user(&state.pool, &auth).await?;
+    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
+    handlers::unfollow(&state.pool, profile.id, target_profile_id).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
 pub async fn list_following(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<models::Follow>>, AppError> {
-    let user = user_repo::get_by_zero_id(&state.pool, &auth.user_id).await?;
-    let profile = user_repo::get_profile_by_user_id(&state.pool, user.id).await?;
+    let user = super::resolve_user(&state.pool, &auth).await?;
+    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     let follows = handlers::list_following(&state.pool, profile.id).await?;
     Ok(Json(follows))
 }
