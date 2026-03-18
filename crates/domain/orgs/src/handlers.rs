@@ -23,6 +23,15 @@ pub async fn get_org(pool: &PgPool, org_id: Uuid) -> Result<Org, AppError> {
     repo::get(pool, org_id).await
 }
 
+pub async fn delete_org(
+    pool: &PgPool,
+    org_id: Uuid,
+    actor_user_id: Uuid,
+) -> Result<(), AppError> {
+    repo::require_role(pool, org_id, actor_user_id, "owner").await?;
+    repo::delete(pool, org_id).await
+}
+
 pub async fn update_org(
     pool: &PgPool,
     org_id: Uuid,

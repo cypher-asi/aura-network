@@ -38,6 +38,16 @@ pub async fn get_org(
     Ok(Json(org))
 }
 
+pub async fn delete_org(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(org_id): Path<Uuid>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let user = super::resolve_user(&state.pool, &auth).await?;
+    handlers::delete_org(&state.pool, org_id, user.id).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
+}
+
 pub async fn update_org(
     auth: AuthUser,
     State(state): State<AppState>,

@@ -101,6 +101,34 @@ pub async fn get(pool: &PgPool, org_id: Uuid) -> Result<Org, AppError> {
         .ok_or_else(|| AppError::NotFound("Organization not found".into()))
 }
 
+pub async fn delete(pool: &PgPool, org_id: Uuid) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+
+    // Delete members and invites first (FK constraints)
+    sqlx::query("DELETE FROM org_invites WHERE org_id = $1")
+        .bind(org_id)
+        .execute(&mut *tx)
+        .await?;
+
+    sqlx::query("DELETE FROM org_members WHERE org_id = $1")
+        .bind(org_id)
+        .execute(&mut *tx)
+        .await?;
+
+    let result = sqlx::query("DELETE FROM organizations WHERE id = $1")
+        .bind(org_id)
+        .execute(&mut *tx)
+        .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound("Organization not found".into()));
+    }
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
 pub async fn update(
     pool: &PgPool,
     org_id: Uuid,

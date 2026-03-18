@@ -19,7 +19,7 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/agents/:id/profile", get(handlers::users::get_agent_profile))
         // Organizations
         .route("/api/orgs", post(handlers::orgs::create_org).get(handlers::orgs::list_orgs))
-        .route("/api/orgs/:id", get(handlers::orgs::get_org).put(handlers::orgs::update_org))
+        .route("/api/orgs/:id", get(handlers::orgs::get_org).put(handlers::orgs::update_org).delete(handlers::orgs::delete_org))
         .route("/api/orgs/:id/members", get(handlers::orgs::list_members))
         .route("/api/orgs/:id/members/:userId", put(handlers::orgs::update_member).delete(handlers::orgs::remove_member))
         .route("/api/orgs/:id/invites", post(handlers::orgs::create_invite).get(handlers::orgs::list_invites))
