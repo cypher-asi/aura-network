@@ -41,7 +41,7 @@ curl http://localhost:3000/health
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `PORT` | No | Server port (default: 3000, Render uses 10000) |
-| `AUTH0_DOMAIN` | Yes | Auth0 domain for JWKS (e.g. `auth.zero.tech`) |
+| `AUTH0_DOMAIN` | Yes | Auth0 domain for JWKS |
 | `AUTH0_AUDIENCE` | Yes | Auth0 audience identifier |
 | `AUTH_COOKIE_SECRET` | Yes | Shared secret for HS256 token validation (same as zOS/zero-payments-server) |
 | `INTERNAL_SERVICE_TOKEN` | Yes | Token for service-to-service auth (aura-swarm → aura-network) |
@@ -192,28 +192,33 @@ Error codes: `NOT_FOUND` (404), `UNAUTHORIZED` (401), `FORBIDDEN` (403), `BAD_RE
 ### From aura-code (Desktop)
 
 ```
-Auth:       zOS API (login) → gets JWT
+Auth:       zOS API (login) -> gets JWT
 Network:    aura-network (profiles, orgs, agents, feed, follows, leaderboard, stats, projects)
+Storage:    aura-storage (specs, tasks, sessions, messages, project agents, logs)
 Billing:    zero-payments-server (credit balance, debit via JWT)
-Local:      RocksDB (specs, tasks, sessions, messages, terminal, filesystem)
+Local:      RocksDB (terminal, filesystem, settings)
 ```
 
-The desktop's local Axum server proxies shared-data requests to aura-network. The React frontend doesn't change — it still talks to `localhost:PORT/api/*`.
+The desktop's local Axum server proxies shared-data requests to aura-network and aura-storage. The React frontend doesn't change — it still talks to `localhost:PORT/api/*`.
 
 ### From aura-swarm (Cloud Agents)
 
 ```
-1. Verify user exists:     GET /internal/users/:zeroUserId
-2. Check credit budget:    GET /internal/orgs/:id/members/:userId/budget
-3. After LLM call:         POST /internal/usage (record tokens)
-4. After task completion:   POST /internal/activity (post to feed)
+1. Verify user exists:     GET aura-network /internal/users/:zeroUserId
+2. Check credit budget:    GET aura-network /internal/orgs/:id/members/:userId/budget
+3. Update agent status:    POST aura-storage /internal/project-agents/:id/status
+4. Create session:         POST aura-storage /internal/sessions
+5. Write messages:         POST aura-storage /internal/messages
+6. Write logs:             POST aura-storage /internal/logs
+7. Record token usage:     POST aura-network /internal/usage
+8. Post to feed:           POST aura-network /internal/activity
 ```
 
-Use the user's JWT for credit debits against zero-payments-server. Use `X-Internal-Token` for aura-network internal endpoints.
+Use `X-Internal-Token` for both aura-network and aura-storage internal endpoints. Use the user's JWT for credit debits against zero-payments-server.
 
 ### From Mobile
 
-Same API as desktop — all endpoints are API-first. Authenticate via zOS, then call aura-network directly.
+Same API as desktop — all endpoints are API-first. Authenticate via zOS, then call aura-network and aura-storage directly.
 
 ---
 
@@ -222,7 +227,7 @@ Same API as desktop — all endpoints are API-first. Authenticate via zOS, then 
 | Crate | Description |
 | --- | --- |
 | **aura-network-core** | Shared types, error handling, pagination |
-| **aura-network-db** | PostgreSQL connection pool and migrations (14 migrations) |
+| **aura-network-db** | PostgreSQL connection pool and migrations (17 migrations) |
 | **aura-network-auth** | JWT validation (Auth0 JWKS + HS256) and auth extractors |
 | **aura-network-server** | Axum HTTP server, router, handlers, WebSocket |
 | **aura-network-users** | User and profile management |
