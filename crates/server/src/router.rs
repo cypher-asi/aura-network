@@ -11,9 +11,12 @@ pub fn create_router() -> Router<AppState> {
         // Users
         .route("/api/users/me", get(handlers::users::get_me).put(handlers::users::update_me))
         .route("/api/users/:id", get(handlers::users::get_user))
+        .route("/api/users/:id/profile", get(handlers::users::get_user_profile))
         // Profiles
         .route("/api/profiles/:id", get(handlers::users::get_profile))
         .route("/api/profiles/:id/activity", get(handlers::feed::get_profile_activity))
+        // Agent profile lookup
+        .route("/api/agents/:id/profile", get(handlers::users::get_agent_profile))
         // Organizations
         .route("/api/orgs", post(handlers::orgs::create_org).get(handlers::orgs::list_orgs))
         .route("/api/orgs/:id", get(handlers::orgs::get_org).put(handlers::orgs::update_org))

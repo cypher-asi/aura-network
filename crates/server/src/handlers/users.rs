@@ -44,3 +44,21 @@ pub async fn get_profile(
     let profile = handlers::get_profile(&state.pool, profile_id).await?;
     Ok(Json(profile))
 }
+
+pub async fn get_user_profile(
+    _auth: AuthUser,
+    State(state): State<AppState>,
+    Path(user_id): Path<Uuid>,
+) -> Result<Json<models::Profile>, AppError> {
+    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user_id).await?;
+    Ok(Json(profile))
+}
+
+pub async fn get_agent_profile(
+    _auth: AuthUser,
+    State(state): State<AppState>,
+    Path(agent_id): Path<Uuid>,
+) -> Result<Json<models::Profile>, AppError> {
+    let profile = aura_network_users::repo::get_profile_by_agent_id(&state.pool, agent_id).await?;
+    Ok(Json(profile))
+}

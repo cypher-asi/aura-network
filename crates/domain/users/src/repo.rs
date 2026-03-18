@@ -99,3 +99,13 @@ pub async fn get_profile_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<Prof
     .await?
     .ok_or_else(|| AppError::NotFound("Profile not found".into()))
 }
+
+pub async fn get_profile_by_agent_id(pool: &PgPool, agent_id: Uuid) -> Result<Profile, AppError> {
+    sqlx::query_as::<_, Profile>(
+        "SELECT * FROM profiles WHERE profile_type = 'agent' AND agent_id = $1",
+    )
+    .bind(agent_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Profile not found".into()))
+}
