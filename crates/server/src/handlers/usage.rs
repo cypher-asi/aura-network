@@ -44,6 +44,16 @@ pub async fn get_personal_usage(
     Ok(Json(usage))
 }
 
+pub async fn record_usage(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Json(input): Json<models::RecordUsageRequest>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let _user = resolve_user(&state.pool, &auth).await?;
+    handlers::record_usage(&state.pool, input).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
+}
+
 pub async fn get_stats(
     _auth: AuthUser,
     State(state): State<AppState>,

@@ -33,6 +33,7 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/projects/:id", get(handlers::projects::get_project).put(handlers::projects::update_project).delete(handlers::projects::delete_project))
         // Feed
         .route("/api/feed", get(handlers::feed::get_feed))
+        .route("/api/activity", post(handlers::feed::post_activity))
         // Comments
         .route("/api/activity/:eventId/comments", get(handlers::feed::list_comments).post(handlers::feed::create_comment))
         .route("/api/comments/:id", delete(handlers::feed::delete_comment))
@@ -44,6 +45,7 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/orgs/:id/usage", get(handlers::usage::get_org_usage))
         .route("/api/orgs/:id/usage/members", get(handlers::usage::get_member_usage))
         .route("/api/users/me/usage", get(handlers::usage::get_personal_usage))
+        .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
         // Internal
         .route("/internal/users/:zeroUserId", get(handlers::internal::get_user_by_zero_id))

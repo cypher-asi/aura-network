@@ -18,8 +18,8 @@ pub async fn get_feed(
         &state.pool,
         user.id,
         query.filter.as_deref(),
-        query.pagination.limit(),
-        query.pagination.offset(),
+        query.limit(),
+        query.offset(),
     )
     .await?;
     Ok(Json(events))
@@ -39,6 +39,25 @@ pub async fn get_profile_activity(
     )
     .await?;
     Ok(Json(events))
+}
+
+pub async fn post_activity(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Json(input): Json<models::CreateActivityEventRequest>,
+) -> Result<Json<models::ActivityEvent>, AppError> {
+    let _user = super::resolve_user(&state.pool, &auth).await?;
+    let event = handlers::post_activity(&state.pool, input).await?;
+
+    // Broadcast to WebSocket clients
+    if let Ok(json) = serde_json::to_string(&serde_json::json!({
+        "type": "activity.new",
+        "data": &event
+    })) {
+        let _ = state.events_tx.send(json);
+    }
+
+    Ok(Json(event))
 }
 
 pub async fn list_comments(
