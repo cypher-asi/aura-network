@@ -104,10 +104,10 @@ pub async fn revoke_invite(
     auth: AuthUser,
     State(state): State<AppState>,
     Path((org_id, invite_id)): Path<(Uuid, Uuid)>,
-) -> Result<Json<models::OrgInvite>, AppError> {
+) -> Result<axum::http::StatusCode, AppError> {
     let user = super::resolve_user(&state.pool, &auth).await?;
-    let invite = handlers::revoke_invite(&state.pool, org_id, invite_id, user.id).await?;
-    Ok(Json(invite))
+    handlers::revoke_invite(&state.pool, org_id, invite_id, user.id).await?;
+    Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
 pub async fn accept_invite(

@@ -1,4 +1,4 @@
-#[allow(unused_imports, unused_macros)]
+#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use uuid::Uuid;
@@ -6,6 +6,7 @@ use uuid::Uuid;
 /// Macro for generating strongly-typed UUID ID wrappers with sqlx integration.
 /// Not currently used — domain crates use raw `Uuid` for simplicity.
 /// Available for adoption when type safety across ID boundaries is needed.
+#[allow(unused_macros)]
 macro_rules! define_id {
     ($name:ident) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

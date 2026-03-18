@@ -21,19 +21,14 @@ pub async fn health() -> Json<serde_json::Value> {
     }))
 }
 
-/// Resolves the authenticated user's internal record, creating it on first login.
+/// Resolves the authenticated user's internal record, creating user + profile on first login.
+/// Always calls upsert to guarantee both user and profile exist (idempotent).
 pub async fn resolve_user(pool: &sqlx::PgPool, auth: &AuthUser) -> Result<models::User, AppError> {
-    match repo::get_by_zero_id(pool, &auth.user_id).await {
-        Ok(user) => Ok(user),
-        Err(AppError::NotFound(_)) => {
-            let input = models::CreateUserFromToken {
-                zero_user_id: auth.user_id.clone(),
-                display_name: auth.user_id.clone(),
-                profile_image: None,
-                primary_zid: None,
-            };
-            repo::upsert_from_token(pool, &input).await
-        }
-        Err(e) => Err(e),
-    }
+    let input = models::CreateUserFromToken {
+        zero_user_id: auth.user_id.clone(),
+        display_name: auth.user_id.clone(),
+        profile_image: None,
+        primary_zid: None,
+    };
+    repo::upsert_from_token(pool, &input).await
 }
