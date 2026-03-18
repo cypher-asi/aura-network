@@ -12,6 +12,8 @@ pub struct User {
     pub profile_image: Option<String>,
     pub primary_zid: Option<String>,
     pub bio: Option<String>,
+    pub location: Option<String>,
+    pub website: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -36,6 +38,8 @@ pub struct UpdateUserRequest {
     pub display_name: Option<String>,
     pub bio: Option<String>,
     pub profile_image: Option<String>,
+    pub location: Option<String>,
+    pub website: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

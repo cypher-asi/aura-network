@@ -62,12 +62,20 @@ pub async fn get_by_zero_id(pool: &PgPool, zero_user_id: &str) -> Result<User, A
 }
 
 pub async fn update(pool: &PgPool, user_id: Uuid, input: &UpdateUserRequest) -> Result<User, AppError> {
+    if let Some(ref bio) = input.bio {
+        if bio.chars().count() > 400 {
+            return Err(AppError::BadRequest("Bio must be 400 characters or less".into()));
+        }
+    }
+
     sqlx::query_as::<_, User>(
         r#"
         UPDATE users SET
             display_name = COALESCE($2, display_name),
             bio = COALESCE($3, bio),
             profile_image = COALESCE($4, profile_image),
+            location = COALESCE($5, location),
+            website = COALESCE($6, website),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -77,6 +85,8 @@ pub async fn update(pool: &PgPool, user_id: Uuid, input: &UpdateUserRequest) -> 
     .bind(&input.display_name)
     .bind(&input.bio)
     .bind(&input.profile_image)
+    .bind(&input.location)
+    .bind(&input.website)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("User not found".into()))
