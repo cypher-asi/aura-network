@@ -49,9 +49,9 @@ pub async fn get_org_usage(
     let query = format!(
         r#"
         SELECT
-            COALESCE(SUM(input_tokens), 0) as total_input_tokens,
-            COALESCE(SUM(output_tokens), 0) as total_output_tokens,
-            COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
             COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
@@ -77,9 +77,9 @@ pub async fn get_member_usage(
         r#"
         SELECT
             user_id,
-            COALESCE(SUM(input_tokens), 0) as total_input_tokens,
-            COALESCE(SUM(output_tokens), 0) as total_output_tokens,
-            COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
             COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
@@ -106,9 +106,9 @@ pub async fn get_personal_usage(
     let query = format!(
         r#"
         SELECT
-            COALESCE(SUM(input_tokens), 0) as total_input_tokens,
-            COALESCE(SUM(output_tokens), 0) as total_output_tokens,
-            COALESCE(SUM(input_tokens + output_tokens), 0) as total_tokens,
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
             COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
         FROM token_usage_daily
         WHERE user_id = $1 {date_clause}
@@ -141,7 +141,7 @@ pub async fn check_budget(
     // Get current month's usage
     let used: i64 = sqlx::query_scalar(
         r#"
-        SELECT COALESCE(SUM(input_tokens + output_tokens), 0)
+        SELECT COALESCE(SUM(input_tokens + output_tokens), 0)::int8
         FROM token_usage_daily
         WHERE org_id = $1 AND user_id = $2
         AND date >= DATE_TRUNC('month', CURRENT_DATE)
