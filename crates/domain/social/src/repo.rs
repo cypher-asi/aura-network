@@ -91,9 +91,9 @@ pub async fn get_leaderboard(
             p.display_name,
             p.avatar,
             p.profile_type,
-            COALESCE(SUM(tud.input_tokens + tud.output_tokens), 0) as total_tokens,
+            COALESCE(SUM(tud.input_tokens + tud.output_tokens), 0)::int8 as total_tokens,
             COALESCE(SUM(tud.estimated_cost_usd)::float8, 0.0) as estimated_cost_usd,
-            COALESCE(event_counts.event_count, 0) as event_count
+            COALESCE(event_counts.event_count, 0)::int8 as event_count
         FROM profiles p
         LEFT JOIN users u ON p.user_id = u.id AND p.profile_type = 'user'
         LEFT JOIN agents a ON p.agent_id = a.id AND p.profile_type = 'agent'
