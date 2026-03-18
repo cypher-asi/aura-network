@@ -10,6 +10,7 @@ pub struct Project {
     pub name: String,
     pub description: Option<String>,
     pub folder: Option<String>,
+    pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -29,4 +30,5 @@ pub struct UpdateProjectRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub folder: Option<String>,
+    pub status: Option<String>,
 }

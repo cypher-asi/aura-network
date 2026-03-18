@@ -51,12 +51,20 @@ pub async fn update(
     project_id: Uuid,
     input: &UpdateProjectRequest,
 ) -> Result<Project, AppError> {
+    if let Some(ref status) = input.status {
+        match status.as_str() {
+            "active" | "archived" => {}
+            _ => return Err(AppError::BadRequest(format!("Invalid project status: '{status}'. Must be active or archived"))),
+        }
+    }
+
     sqlx::query_as::<_, Project>(
         r#"
         UPDATE projects SET
             name = COALESCE($2, name),
             description = COALESCE($3, description),
             folder = COALESCE($4, folder),
+            status = COALESCE($5, status),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -66,6 +74,7 @@ pub async fn update(
     .bind(&input.name)
     .bind(&input.description)
     .bind(&input.folder)
+    .bind(&input.status)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Project not found".into()))
