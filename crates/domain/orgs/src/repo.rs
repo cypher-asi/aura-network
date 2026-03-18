@@ -102,50 +102,36 @@ pub async fn get(pool: &PgPool, org_id: Uuid) -> Result<Org, AppError> {
 }
 
 pub async fn delete(pool: &PgPool, org_id: Uuid) -> Result<(), AppError> {
+    // Block deletion if org has existing projects or agents
+    let project_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM projects WHERE org_id = $1",
+    )
+    .bind(org_id)
+    .fetch_one(pool)
+    .await?;
+
+    if project_count > 0 {
+        return Err(AppError::BadRequest(
+            "Cannot delete organization with existing projects. Delete all projects first.".into(),
+        ));
+    }
+
+    let agent_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM agents WHERE org_id = $1",
+    )
+    .bind(org_id)
+    .fetch_one(pool)
+    .await?;
+
+    if agent_count > 0 {
+        return Err(AppError::BadRequest(
+            "Cannot delete organization with existing agents. Delete all agents first.".into(),
+        ));
+    }
+
     let mut tx = pool.begin().await?;
 
-    // Delete all org-related data in dependency order (FK constraints)
-
-    // Activity events and comments referencing org
-    sqlx::query("DELETE FROM comments WHERE activity_event_id IN (SELECT id FROM activity_events WHERE org_id = $1)")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    sqlx::query("DELETE FROM activity_events WHERE org_id = $1")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    // Token usage
-    sqlx::query("DELETE FROM token_usage_daily WHERE org_id = $1")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    // Projects
-    sqlx::query("DELETE FROM projects WHERE org_id = $1")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    // Agent profiles, then agents
-    sqlx::query("DELETE FROM follows WHERE follower_profile_id IN (SELECT p.id FROM profiles p JOIN agents a ON p.agent_id = a.id WHERE a.org_id = $1) OR target_profile_id IN (SELECT p.id FROM profiles p JOIN agents a ON p.agent_id = a.id WHERE a.org_id = $1)")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    sqlx::query("DELETE FROM profiles WHERE agent_id IN (SELECT id FROM agents WHERE org_id = $1)")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    sqlx::query("DELETE FROM agents WHERE org_id = $1")
-        .bind(org_id)
-        .execute(&mut *tx)
-        .await?;
-
-    // Invites and members
+    // Clean up invites and members, then delete org
     sqlx::query("DELETE FROM org_invites WHERE org_id = $1")
         .bind(org_id)
         .execute(&mut *tx)
@@ -156,7 +142,6 @@ pub async fn delete(pool: &PgPool, org_id: Uuid) -> Result<(), AppError> {
         .execute(&mut *tx)
         .await?;
 
-    // Finally the org itself
     let result = sqlx::query("DELETE FROM organizations WHERE id = $1")
         .bind(org_id)
         .execute(&mut *tx)
