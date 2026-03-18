@@ -30,7 +30,7 @@ pub async fn upsert_from_token(pool: &PgPool, input: &CreateUserFromToken) -> Re
         r#"
         INSERT INTO profiles (profile_type, user_id, display_name, avatar)
         VALUES ('user', $1, $2, $3)
-        ON CONFLICT (user_id) WHERE profile_type = 'user' DO UPDATE SET
+        ON CONFLICT (user_id) WHERE profile_type = 'user' AND user_id IS NOT NULL DO UPDATE SET
             display_name = EXCLUDED.display_name,
             avatar = EXCLUDED.avatar,
             updated_at = NOW()

@@ -44,7 +44,7 @@ pub async fn create(
         r#"
         INSERT INTO profiles (profile_type, agent_id, display_name, avatar)
         VALUES ('agent', $1, $2, $3)
-        ON CONFLICT (agent_id) WHERE profile_type = 'agent' DO UPDATE SET
+        ON CONFLICT (agent_id) WHERE profile_type = 'agent' AND agent_id IS NOT NULL DO UPDATE SET
             display_name = EXCLUDED.display_name,
             avatar = EXCLUDED.avatar,
             updated_at = NOW()
