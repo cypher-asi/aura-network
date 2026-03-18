@@ -12,13 +12,14 @@ pub async fn create(pool: &PgPool, input: &CreateProjectRequest) -> Result<Proje
 
     let project = sqlx::query_as::<_, Project>(
         r#"
-        INSERT INTO projects (org_id, name, folder)
-        VALUES ($1, $2, $3)
+        INSERT INTO projects (org_id, name, description, folder)
+        VALUES ($1, $2, $3, $4)
         RETURNING *
         "#,
     )
     .bind(input.org_id)
     .bind(input.name.trim())
+    .bind(&input.description)
     .bind(&input.folder)
     .fetch_one(pool)
     .await?;
@@ -54,7 +55,8 @@ pub async fn update(
         r#"
         UPDATE projects SET
             name = COALESCE($2, name),
-            folder = COALESCE($3, folder),
+            description = COALESCE($3, description),
+            folder = COALESCE($4, folder),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -62,6 +64,7 @@ pub async fn update(
     )
     .bind(project_id)
     .bind(&input.name)
+    .bind(&input.description)
     .bind(&input.folder)
     .fetch_optional(pool)
     .await?

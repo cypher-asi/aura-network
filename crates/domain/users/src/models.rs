@@ -32,6 +32,14 @@ pub struct Profile {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserResponse {
+    #[serde(flatten)]
+    pub user: User,
+    pub profile_id: Option<Uuid>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserRequest {

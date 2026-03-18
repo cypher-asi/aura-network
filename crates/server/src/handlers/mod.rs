@@ -38,6 +38,8 @@ pub async fn resolve_user(pool: &sqlx::PgPool, auth: &AuthUser) -> Result<models
     if orgs.is_empty() {
         let org_input = aura_network_orgs::models::CreateOrgRequest {
             name: "My Team".to_string(),
+            description: None,
+            avatar_url: None,
         };
         aura_network_orgs::repo::create(pool, user.id, &user.display_name, &org_input).await?;
     }

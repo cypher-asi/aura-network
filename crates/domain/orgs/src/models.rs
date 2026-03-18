@@ -10,6 +10,8 @@ pub struct Org {
     pub slug: String,
     pub owner_user_id: Uuid,
     pub billing_email: Option<String>,
+    pub description: Option<String>,
+    pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -43,6 +45,8 @@ pub struct OrgInvite {
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrgRequest {
     pub name: String,
+    pub description: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,6 +54,8 @@ pub struct CreateOrgRequest {
 pub struct UpdateOrgRequest {
     pub name: Option<String>,
     pub billing_email: Option<String>,
+    pub description: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

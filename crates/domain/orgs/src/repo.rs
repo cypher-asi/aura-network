@@ -49,14 +49,16 @@ pub async fn create(
 
     let org = sqlx::query_as::<_, Org>(
         r#"
-        INSERT INTO organizations (name, slug, owner_user_id)
-        VALUES ($1, $2, $3)
+        INSERT INTO organizations (name, slug, owner_user_id, description, avatar_url)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *
         "#,
     )
     .bind(input.name.trim())
     .bind(&slug)
     .bind(user_id)
+    .bind(&input.description)
+    .bind(&input.avatar_url)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -166,6 +168,8 @@ pub async fn update(
         UPDATE organizations SET
             name = COALESCE($2, name),
             billing_email = COALESCE($3, billing_email),
+            description = COALESCE($4, description),
+            avatar_url = COALESCE($5, avatar_url),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -174,6 +178,8 @@ pub async fn update(
     .bind(org_id)
     .bind(&input.name)
     .bind(&input.billing_email)
+    .bind(&input.description)
+    .bind(&input.avatar_url)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Organization not found".into()))

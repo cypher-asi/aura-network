@@ -4,36 +4,44 @@ use uuid::Uuid;
 
 use aura_network_auth::AuthUser;
 use aura_network_core::AppError;
-use aura_network_users::{handlers, models};
+use aura_network_users::{handlers, models, repo};
 
 use crate::state::AppState;
 use super::resolve_user;
 
+async fn user_with_profile(pool: &sqlx::PgPool, user: models::User) -> models::UserResponse {
+    let profile_id = repo::get_profile_by_user_id(pool, user.id)
+        .await
+        .ok()
+        .map(|p| p.id);
+    models::UserResponse { user, profile_id }
+}
+
 pub async fn get_me(
     auth: AuthUser,
     State(state): State<AppState>,
-) -> Result<Json<models::User>, AppError> {
+) -> Result<Json<models::UserResponse>, AppError> {
     let user = resolve_user(&state.pool, &auth).await?;
-    Ok(Json(user))
+    Ok(Json(user_with_profile(&state.pool, user).await))
 }
 
 pub async fn update_me(
     auth: AuthUser,
     State(state): State<AppState>,
     Json(input): Json<models::UpdateUserRequest>,
-) -> Result<Json<models::User>, AppError> {
+) -> Result<Json<models::UserResponse>, AppError> {
     let _existing = resolve_user(&state.pool, &auth).await?;
     let user = handlers::update_me(&state.pool, &auth.user_id, input).await?;
-    Ok(Json(user))
+    Ok(Json(user_with_profile(&state.pool, user).await))
 }
 
 pub async fn get_user(
     _auth: AuthUser,
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
-) -> Result<Json<models::User>, AppError> {
+) -> Result<Json<models::UserResponse>, AppError> {
     let user = handlers::get_user(&state.pool, user_id).await?;
-    Ok(Json(user))
+    Ok(Json(user_with_profile(&state.pool, user).await))
 }
 
 pub async fn get_profile(
@@ -50,7 +58,7 @@ pub async fn get_user_profile(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<models::Profile>, AppError> {
-    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user_id).await?;
+    let profile = repo::get_profile_by_user_id(&state.pool, user_id).await?;
     Ok(Json(profile))
 }
 
@@ -59,6 +67,6 @@ pub async fn get_agent_profile(
     State(state): State<AppState>,
     Path(agent_id): Path<Uuid>,
 ) -> Result<Json<models::Profile>, AppError> {
-    let profile = aura_network_users::repo::get_profile_by_agent_id(&state.pool, agent_id).await?;
+    let profile = repo::get_profile_by_agent_id(&state.pool, agent_id).await?;
     Ok(Json(profile))
 }
