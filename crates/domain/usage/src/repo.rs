@@ -52,7 +52,7 @@ pub async fn get_org_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
         "#,
@@ -80,7 +80,7 @@ pub async fn get_member_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
         GROUP BY user_id
@@ -109,7 +109,7 @@ pub async fn get_personal_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as estimated_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
         FROM token_usage_daily
         WHERE user_id = $1 {date_clause}
         "#,

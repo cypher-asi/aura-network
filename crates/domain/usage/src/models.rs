@@ -49,7 +49,7 @@ pub struct UsageSummary {
     pub total_input_tokens: i64,
     pub total_output_tokens: i64,
     pub total_tokens: i64,
-    pub estimated_cost_usd: f64,
+    pub total_cost_usd: f64,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -59,7 +59,7 @@ pub struct MemberUsage {
     pub total_input_tokens: i64,
     pub total_output_tokens: i64,
     pub total_tokens: i64,
-    pub estimated_cost_usd: f64,
+    pub total_cost_usd: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]

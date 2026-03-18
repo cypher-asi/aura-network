@@ -21,9 +21,9 @@ pub struct FollowRequest {
 pub struct LeaderboardEntry {
     pub profile_id: Uuid,
     pub display_name: String,
-    pub avatar: Option<String>,
+    pub avatar_url: Option<String>,
     pub profile_type: String,
-    pub total_tokens: i64,
+    pub tokens_used: i64,
     pub estimated_cost_usd: f64,
     pub event_count: i64,
 }
