@@ -107,6 +107,15 @@ On first authenticated request, the user is auto-created with a profile.
 | DELETE | `/api/agents/:id` | Delete agent (owner) | JWT |
 | GET | `/api/agents/:id/profile` | Get agent's profile | JWT |
 
+### Integrations
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| POST | `/api/orgs/:id/integrations` | Add integration. Body: `{"integrationType": "github", "config": {...}}` | JWT |
+| GET | `/api/orgs/:id/integrations` | List integrations for org | JWT |
+| PUT | `/api/orgs/:id/integrations/:integrationId` | Update integration config/enabled | JWT |
+| DELETE | `/api/orgs/:id/integrations/:integrationId` | Remove integration | JWT |
+
 ### Projects
 
 | Method | Path | Description | Auth |
@@ -227,7 +236,7 @@ Same API as desktop — all endpoints are API-first. Authenticate via zOS, then 
 | Crate | Description |
 | --- | --- |
 | **aura-network-core** | Shared types, error handling, pagination |
-| **aura-network-db** | PostgreSQL connection pool and migrations (17 migrations) |
+| **aura-network-db** | PostgreSQL connection pool and migrations (18 migrations) |
 | **aura-network-auth** | JWT validation (Auth0 JWKS + HS256) and auth extractors |
 | **aura-network-server** | Axum HTTP server, router, handlers, WebSocket |
 | **aura-network-users** | User and profile management |
@@ -237,6 +246,7 @@ Same API as desktop — all endpoints are API-first. Authenticate via zOS, then 
 | **aura-network-feed** | Activity events, comments, filtered feeds |
 | **aura-network-social** | Follows and leaderboard |
 | **aura-network-usage** | Token usage tracking, platform stats, credit budgets |
+| **aura-network-integrations** | Org-level integrations (GitHub, Linear, Vercel, etc.) |
 
 ## License
 
