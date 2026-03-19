@@ -44,11 +44,14 @@ async fn main() {
 
     let (events_tx, _) = tokio::sync::broadcast::channel::<String>(256);
 
+    let aura_storage_url = std::env::var("AURA_STORAGE_URL").ok().filter(|s| !s.is_empty());
+
     let state = AppState {
         pool,
         validator: TokenValidator::new(auth0_domain, auth0_audience, cookie_secret),
         internal_token: InternalToken(internal_token),
         events_tx,
+        aura_storage_url,
     };
 
     let cors = match std::env::var("CORS_ORIGINS") {

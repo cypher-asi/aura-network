@@ -71,6 +71,38 @@ pub async fn delete_project(
     let user = resolve_user(&state.pool, &auth).await?;
     let existing = handlers::get_project(&state.pool, project_id).await?;
     org_repo::require_role(&state.pool, existing.org_id, user.id, "admin").await?;
+
+    // Check aura-storage for project agents before allowing delete
+    if let Some(ref storage_url) = state.aura_storage_url {
+        let url = format!(
+            "{}/internal/projects/{}/agents/count",
+            storage_url, project_id
+        );
+        let response = reqwest::Client::new()
+            .get(&url)
+            .header("X-Internal-Token", &state.internal_token.0)
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::error!(error = %e, "Failed to check project agents in aura-storage");
+                AppError::Internal("Failed to verify project agent status".into())
+            })?;
+
+        if response.status().is_success() {
+            let body: serde_json::Value = response.json().await.map_err(|e| {
+                tracing::error!(error = %e, "Failed to parse aura-storage response");
+                AppError::Internal("Failed to verify project agent status".into())
+            })?;
+
+            let count = body["count"].as_i64().unwrap_or(0);
+            if count > 0 {
+                return Err(AppError::BadRequest(
+                    "Cannot delete project with existing project agents. Delete all project agents first.".into(),
+                ));
+            }
+        }
+    }
+
     handlers::delete_project(&state.pool, project_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
