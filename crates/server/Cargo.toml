@@ -14,6 +14,7 @@ aura-network-projects = { workspace = true }
 aura-network-feed = { workspace = true }
 aura-network-social = { workspace = true }
 aura-network-usage = { workspace = true }
+aura-network-integrations = { workspace = true }
 async-trait = "0.1"
 chrono = { workspace = true }
 axum = { workspace = true }

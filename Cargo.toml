@@ -12,6 +12,7 @@ members = [
     "crates/domain/feed",
     "crates/domain/social",
     "crates/domain/usage",
+    "crates/domain/integrations",
 ]
 
 [workspace.dependencies]
@@ -43,3 +44,4 @@ aura-network-projects = { path = "crates/domain/projects" }
 aura-network-feed = { path = "crates/domain/feed" }
 aura-network-social = { path = "crates/domain/social" }
 aura-network-usage = { path = "crates/domain/usage" }
+aura-network-integrations = { path = "crates/domain/integrations" }

@@ -5,6 +5,7 @@ pub mod projects;
 pub mod feed;
 pub mod social;
 pub mod usage;
+pub mod integrations;
 pub mod internal;
 pub mod ws;
 

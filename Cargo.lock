@@ -124,6 +124,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aura-network-integrations"
+version = "0.1.0"
+dependencies = [
+ "aura-network-core",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "aura-network-orgs"
 version = "0.1.0"
 dependencies = [
@@ -159,6 +172,7 @@ dependencies = [
  "aura-network-core",
  "aura-network-db",
  "aura-network-feed",
+ "aura-network-integrations",
  "aura-network-orgs",
  "aura-network-projects",
  "aura-network-social",

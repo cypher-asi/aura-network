@@ -41,6 +41,9 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/follows", post(handlers::social::follow).get(handlers::social::list_following))
         .route("/api/follows/:profileId", delete(handlers::social::unfollow))
         .route("/api/leaderboard", get(handlers::social::leaderboard))
+        // Integrations
+        .route("/api/orgs/:id/integrations", post(handlers::integrations::create_integration).get(handlers::integrations::list_integrations))
+        .route("/api/orgs/:id/integrations/:integrationId", put(handlers::integrations::update_integration).delete(handlers::integrations::delete_integration))
         // Usage & Stats
         .route("/api/orgs/:id/usage", get(handlers::usage::get_org_usage))
         .route("/api/orgs/:id/usage/members", get(handlers::usage::get_member_usage))
