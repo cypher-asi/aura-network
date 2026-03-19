@@ -55,6 +55,7 @@ pub fn create_router() -> Router<AppState> {
         .route("/internal/activity", post(handlers::internal::post_activity))
         .route("/internal/usage", post(handlers::internal::record_usage))
         .route("/internal/orgs/:id/members/:userId/budget", get(handlers::internal::check_budget))
+        .route("/internal/orgs/:id/integrations", get(handlers::internal::list_org_integrations))
         // WebSocket
         .route("/ws/events", get(handlers::ws::ws_events))
 }

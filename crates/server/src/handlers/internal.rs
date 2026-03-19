@@ -58,3 +58,12 @@ pub async fn check_budget(
     let status = aura_network_usage::handlers::check_budget(&state.pool, org_id, user_id).await?;
     Ok(Json(status))
 }
+
+pub async fn list_org_integrations(
+    _auth: InternalAuth,
+    State(state): State<AppState>,
+    Path(org_id): Path<Uuid>,
+) -> Result<Json<Vec<aura_network_integrations::models::OrgIntegration>>, AppError> {
+    let integrations = aura_network_integrations::repo::list(&state.pool, org_id).await?;
+    Ok(Json(integrations))
+}
