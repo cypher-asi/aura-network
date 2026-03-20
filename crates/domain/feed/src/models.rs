@@ -10,9 +10,14 @@ pub struct ActivityEvent {
     pub org_id: Option<Uuid>,
     pub project_id: Option<Uuid>,
     pub event_type: String,
+    pub post_type: String,
     pub title: String,
     pub summary: Option<String>,
     pub metadata: Option<serde_json::Value>,
+    pub agent_id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub push_id: Option<Uuid>,
+    pub commit_ids: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -34,9 +39,14 @@ pub struct CreateActivityEventRequest {
     pub org_id: Option<Uuid>,
     pub project_id: Option<Uuid>,
     pub event_type: String,
+    pub post_type: Option<String>,
     pub title: String,
     pub summary: Option<String>,
     pub metadata: Option<serde_json::Value>,
+    pub agent_id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub push_id: Option<Uuid>,
+    pub commit_ids: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,6 +80,8 @@ const VALID_EVENT_TYPES: &[&str] = &[
     "loop_started",
     "loop_finished",
     "agent_created",
+    "post",
+    "push",
 ];
 
 pub fn validate_event_type(event_type: &str) -> Result<(), aura_network_core::AppError> {

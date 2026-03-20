@@ -15,10 +15,12 @@ pub async fn post_activity(
         return Err(AppError::BadRequest("Activity event title must not be empty".into()));
     }
 
+    let post_type = input.post_type.as_deref().unwrap_or("event");
+
     let event = sqlx::query_as::<_, ActivityEvent>(
         r#"
-        INSERT INTO activity_events (profile_id, org_id, project_id, event_type, title, summary, metadata)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO activity_events (profile_id, org_id, project_id, event_type, post_type, title, summary, metadata, agent_id, user_id, push_id, commit_ids)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
         "#,
     )
@@ -26,9 +28,14 @@ pub async fn post_activity(
     .bind(input.org_id)
     .bind(input.project_id)
     .bind(&input.event_type)
+    .bind(post_type)
     .bind(input.title.trim())
     .bind(&input.summary)
     .bind(&input.metadata)
+    .bind(input.agent_id)
+    .bind(input.user_id)
+    .bind(input.push_id)
+    .bind(&input.commit_ids)
     .fetch_one(pool)
     .await?;
 
