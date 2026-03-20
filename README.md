@@ -126,11 +126,22 @@ On first authenticated request, the user is auto-created with a profile.
 | PUT | `/api/projects/:id` | Update project (org member) | JWT |
 | DELETE | `/api/projects/:id` | Delete project (admin+) | JWT |
 
-### Feed & Social
+### Feed & Activity
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
 | GET | `/api/feed?filter=` | Activity feed. Filters: `my-agents`, `org`, `following`, `everything` | JWT |
+| POST | `/api/activity` | Create post. Body: `{"profileId": "...", "eventType": "post", "postType": "post", "title": "..."}` | JWT |
+| GET | `/api/profiles/:id/activity` | Profile's activity feed | JWT |
+
+Post types (`postType`): `post` (generic x-style), `push` (orbit push with commits), `event` (system events).
+
+Optional fields: `agentId`, `userId` (tracked as a pair), `pushId`, `commitIds` (for push posts), `summary`, `metadata`.
+
+### Social
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
 | POST | `/api/follows` | Follow a profile. Body: `{"targetProfileId": "..."}` | JWT |
 | GET | `/api/follows` | List follows | JWT |
 | DELETE | `/api/follows/:profileId` | Unfollow | JWT |
@@ -236,7 +247,7 @@ Same API as desktop — all endpoints are API-first. Authenticate via zOS, then 
 | Crate | Description |
 | --- | --- |
 | **aura-network-core** | Shared types, error handling, pagination |
-| **aura-network-db** | PostgreSQL connection pool and migrations (18 migrations) |
+| **aura-network-db** | PostgreSQL connection pool and migrations (20 migrations) |
 | **aura-network-auth** | JWT validation (Auth0 JWKS + HS256) and auth extractors |
 | **aura-network-server** | Axum HTTP server, router, handlers, WebSocket |
 | **aura-network-users** | User and profile management |
