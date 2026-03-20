@@ -31,14 +31,19 @@ pub async fn get_profile_activity(
     Path(profile_id): Path<Uuid>,
     Query(query): Query<aura_network_core::PaginationParams>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
-    let events = handlers::get_profile_activity(
-        &state.pool,
-        profile_id,
-        query.limit(),
-        query.offset(),
-    )
-    .await?;
+    let events =
+        handlers::get_profile_activity(&state.pool, profile_id, query.limit(), query.offset())
+            .await?;
     Ok(Json(events))
+}
+
+pub async fn get_post(
+    _auth: AuthUser,
+    State(state): State<AppState>,
+    Path(post_id): Path<Uuid>,
+) -> Result<Json<models::ActivityEvent>, AppError> {
+    let event = handlers::get_post(&state.pool, post_id).await?;
+    Ok(Json(event))
 }
 
 pub async fn post_activity(

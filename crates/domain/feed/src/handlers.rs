@@ -32,6 +32,10 @@ pub async fn get_profile_activity(
     repo::get_profile_activity(pool, profile_id, limit, offset).await
 }
 
+pub async fn get_post(pool: &PgPool, post_id: Uuid) -> Result<ActivityEvent, AppError> {
+    repo::get_post_by_id(pool, post_id).await
+}
+
 pub async fn create_comment(
     pool: &PgPool,
     activity_event_id: Uuid,

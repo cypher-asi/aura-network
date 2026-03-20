@@ -12,7 +12,9 @@ pub async fn post_activity(
     crate::models::validate_event_type(&input.event_type)?;
 
     if input.title.trim().is_empty() {
-        return Err(AppError::BadRequest("Activity event title must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "Activity event title must not be empty".into(),
+        ));
     }
 
     let post_type = input.post_type.as_deref().unwrap_or("event");
@@ -150,6 +152,14 @@ pub async fn get_profile_activity(
     Ok(events)
 }
 
+pub async fn get_post_by_id(pool: &PgPool, post_id: Uuid) -> Result<ActivityEvent, AppError> {
+    sqlx::query_as::<_, ActivityEvent>("SELECT * FROM activity_events WHERE id = $1")
+        .bind(post_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Post not found".into()))
+}
+
 pub async fn create_comment(
     pool: &PgPool,
     activity_event_id: Uuid,
@@ -157,16 +167,17 @@ pub async fn create_comment(
     input: &CreateCommentRequest,
 ) -> Result<Comment, AppError> {
     if input.content.trim().is_empty() {
-        return Err(AppError::BadRequest("Comment content must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "Comment content must not be empty".into(),
+        ));
     }
 
     // Verify event exists
-    let exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM activity_events WHERE id = $1)",
-    )
-    .bind(activity_event_id)
-    .fetch_one(pool)
-    .await?;
+    let exists =
+        sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM activity_events WHERE id = $1)")
+            .bind(activity_event_id)
+            .fetch_one(pool)
+            .await?;
 
     if !exists {
         return Err(AppError::NotFound("Activity event not found".into()));
@@ -207,16 +218,16 @@ pub async fn delete_comment(
     comment_id: Uuid,
     profile_id: Uuid,
 ) -> Result<(), AppError> {
-    let result = sqlx::query(
-        "DELETE FROM comments WHERE id = $1 AND profile_id = $2",
-    )
-    .bind(comment_id)
-    .bind(profile_id)
-    .execute(pool)
-    .await?;
+    let result = sqlx::query("DELETE FROM comments WHERE id = $1 AND profile_id = $2")
+        .bind(comment_id)
+        .bind(profile_id)
+        .execute(pool)
+        .await?;
 
     if result.rows_affected() == 0 {
-        return Err(AppError::NotFound("Comment not found or not owned by you".into()));
+        return Err(AppError::NotFound(
+            "Comment not found or not owned by you".into(),
+        ));
     }
 
     Ok(())
