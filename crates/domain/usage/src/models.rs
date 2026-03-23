@@ -34,8 +34,9 @@ pub struct PlatformStats {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecordUsageRequest {
-    pub org_id: Uuid,
+    pub org_id: Option<Uuid>,
     pub user_id: Uuid,
+    pub zero_user_id: Option<String>,
     pub agent_id: Option<Uuid>,
     pub model: String,
     pub input_tokens: i64,

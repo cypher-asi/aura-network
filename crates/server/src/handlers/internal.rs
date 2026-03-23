@@ -19,7 +19,8 @@ pub async fn get_user_by_zero_id(
     State(state): State<AppState>,
     Path(zero_user_id): Path<String>,
 ) -> Result<Json<aura_network_users::models::User>, AppError> {
-    let user = aura_network_users::handlers::get_user_by_zero_id(&state.pool, &zero_user_id).await?;
+    let user =
+        aura_network_users::handlers::get_user_by_zero_id(&state.pool, &zero_user_id).await?;
     Ok(Json(user))
 }
 
@@ -44,8 +45,19 @@ pub async fn post_activity(
 pub async fn record_usage(
     _auth: InternalAuth,
     State(state): State<AppState>,
-    Json(input): Json<aura_network_usage::models::RecordUsageRequest>,
+    Json(mut input): Json<aura_network_usage::models::RecordUsageRequest>,
 ) -> Result<StatusCode, AppError> {
+    // If zero_user_id is provided, resolve to internal user ID.
+    // aura-router sends the zOS UUID, but token_usage_daily.user_id
+    // references users.id (aura-network's internal UUID).
+    if let Some(ref zero_id) = input.zero_user_id {
+        if let Ok(user) =
+            aura_network_users::handlers::get_user_by_zero_id(&state.pool, zero_id).await
+        {
+            input.user_id = user.id;
+        }
+    }
+
     aura_network_usage::handlers::record_usage(&state.pool, input).await?;
     Ok(StatusCode::NO_CONTENT)
 }
