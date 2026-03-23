@@ -11,6 +11,7 @@ pub struct Project {
     pub description: Option<String>,
     pub folder: Option<String>,
     pub status: String,
+    pub visibility: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -22,6 +23,7 @@ pub struct CreateProjectRequest {
     pub name: String,
     pub description: Option<String>,
     pub folder: Option<String>,
+    pub visibility: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -31,4 +33,5 @@ pub struct UpdateProjectRequest {
     pub description: Option<String>,
     pub folder: Option<String>,
     pub status: Option<String>,
+    pub visibility: Option<String>,
 }

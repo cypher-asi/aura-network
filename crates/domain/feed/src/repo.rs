@@ -100,6 +100,16 @@ pub async fn get_feed(
                     JOIN profiles p ON f.follower_profile_id = p.id
                     WHERE p.user_id = $1 AND p.profile_type = 'user'
                 )
+                AND (
+                    ae.project_id IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1 FROM projects p
+                        WHERE p.id = ae.project_id AND p.visibility = 'private'
+                    )
+                    OR ae.org_id IN (
+                        SELECT org_id FROM org_members WHERE user_id = $1
+                    )
+                )
                 ORDER BY ae.created_at DESC
                 LIMIT $2 OFFSET $3
                 "#,
@@ -111,14 +121,26 @@ pub async fn get_feed(
             .await?
         }
         _ => {
-            // "everything" — all public events
+            // "everything" — all events, excluding private project activity
+            // unless the viewer is a member of the project's org.
             sqlx::query_as::<_, ActivityEvent>(
                 r#"
-                SELECT * FROM activity_events
-                ORDER BY created_at DESC
-                LIMIT $1 OFFSET $2
+                SELECT ae.* FROM activity_events ae
+                WHERE (
+                    ae.project_id IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1 FROM projects p
+                        WHERE p.id = ae.project_id AND p.visibility = 'private'
+                    )
+                    OR ae.org_id IN (
+                        SELECT org_id FROM org_members WHERE user_id = $1
+                    )
+                )
+                ORDER BY ae.created_at DESC
+                LIMIT $2 OFFSET $3
                 "#,
             )
+            .bind(user_id)
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
