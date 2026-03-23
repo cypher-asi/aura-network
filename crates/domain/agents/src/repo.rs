@@ -14,17 +14,22 @@ pub async fn create(
         return Err(AppError::BadRequest("Agent name must not be empty".into()));
     }
 
-    let skills_json = serde_json::to_value(
-        input.skills.as_deref().unwrap_or(&[]),
-    )
-    .unwrap_or(serde_json::json!([]));
+    let skills_json = serde_json::to_value(input.skills.as_deref().unwrap_or(&[]))
+        .unwrap_or(serde_json::json!([]));
 
     let mut tx = pool.begin().await?;
 
+    let machine_type = input.machine_type.as_deref().unwrap_or("local");
+    if machine_type != "local" && machine_type != "remote" {
+        return Err(AppError::BadRequest(format!(
+            "Invalid machine_type: '{machine_type}'. Must be local or remote"
+        )));
+    }
+
     let agent = sqlx::query_as::<_, Agent>(
         r#"
-        INSERT INTO agents (user_id, org_id, name, role, personality, system_prompt, skills, icon)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO agents (user_id, org_id, name, role, personality, system_prompt, skills, icon, machine_type)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
         "#,
     )
@@ -36,6 +41,7 @@ pub async fn create(
     .bind(&input.system_prompt)
     .bind(&skills_json)
     .bind(&input.icon)
+    .bind(machine_type)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -75,12 +81,10 @@ pub async fn list(
         .fetch_all(pool)
         .await?
     } else {
-        sqlx::query_as::<_, Agent>(
-            "SELECT * FROM agents WHERE user_id = $1 ORDER BY created_at",
-        )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?
+        sqlx::query_as::<_, Agent>("SELECT * FROM agents WHERE user_id = $1 ORDER BY created_at")
+            .bind(user_id)
+            .fetch_all(pool)
+            .await?
     };
 
     Ok(agents)
@@ -110,6 +114,14 @@ pub async fn update(
         .as_ref()
         .map(|s| serde_json::to_value(s).unwrap_or(serde_json::json!([])));
 
+    if let Some(ref mt) = input.machine_type {
+        if mt != "local" && mt != "remote" {
+            return Err(AppError::BadRequest(format!(
+                "Invalid machine_type: '{mt}'. Must be local or remote"
+            )));
+        }
+    }
+
     let agent = sqlx::query_as::<_, Agent>(
         r#"
         UPDATE agents SET
@@ -119,6 +131,7 @@ pub async fn update(
             system_prompt = COALESCE($5, system_prompt),
             skills = COALESCE($6, skills),
             icon = COALESCE($7, icon),
+            machine_type = COALESCE($8, machine_type),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -131,6 +144,7 @@ pub async fn update(
     .bind(&input.system_prompt)
     .bind(&skills_json)
     .bind(&input.icon)
+    .bind(&input.machine_type)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".into()))?;

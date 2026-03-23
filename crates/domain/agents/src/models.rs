@@ -14,6 +14,7 @@ pub struct Agent {
     pub system_prompt: Option<String>,
     pub skills: serde_json::Value,
     pub icon: Option<String>,
+    pub machine_type: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -28,6 +29,7 @@ pub struct CreateAgentRequest {
     pub system_prompt: Option<String>,
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
+    pub machine_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,4 +41,5 @@ pub struct UpdateAgentRequest {
     pub system_prompt: Option<String>,
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
+    pub machine_type: Option<String>,
 }
