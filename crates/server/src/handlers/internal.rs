@@ -71,6 +71,56 @@ pub async fn check_budget(
     Ok(Json(status))
 }
 
+pub async fn get_project_usage(
+    _auth: InternalAuth,
+    State(state): State<AppState>,
+    Path(project_id): Path<Uuid>,
+    axum::extract::Query(query): axum::extract::Query<aura_network_usage::models::UsageQuery>,
+) -> Result<Json<aura_network_usage::models::UsageSummary>, AppError> {
+    let usage = aura_network_usage::handlers::get_project_usage(
+        &state.pool,
+        project_id,
+        query.period.as_deref(),
+    )
+    .await?;
+    Ok(Json(usage))
+}
+
+pub async fn get_org_usage(
+    _auth: InternalAuth,
+    State(state): State<AppState>,
+    Path(org_id): Path<Uuid>,
+    axum::extract::Query(query): axum::extract::Query<aura_network_usage::models::UsageQuery>,
+) -> Result<Json<aura_network_usage::models::UsageSummary>, AppError> {
+    let usage = aura_network_usage::handlers::get_org_usage(
+        &state.pool,
+        org_id,
+        query.period.as_deref(),
+    )
+    .await?;
+    Ok(Json(usage))
+}
+
+pub async fn get_network_usage(
+    _auth: InternalAuth,
+    State(state): State<AppState>,
+) -> Result<Json<aura_network_usage::models::UsageSummary>, AppError> {
+    // Network-wide: sum all usage
+    let usage = sqlx::query_as::<_, aura_network_usage::models::UsageSummary>(
+        r#"
+        SELECT
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+        FROM token_usage_daily
+        "#,
+    )
+    .fetch_one(&state.pool)
+    .await?;
+    Ok(Json(usage))
+}
+
 pub async fn list_org_integrations(
     _auth: InternalAuth,
     State(state): State<AppState>,

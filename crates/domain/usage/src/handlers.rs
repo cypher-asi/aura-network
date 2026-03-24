@@ -6,10 +6,7 @@ use aura_network_core::AppError;
 use crate::models::{BudgetStatus, MemberUsage, PlatformStats, RecordUsageRequest, UsageSummary};
 use crate::repo;
 
-pub async fn record_usage(
-    pool: &PgPool,
-    input: RecordUsageRequest,
-) -> Result<(), AppError> {
+pub async fn record_usage(pool: &PgPool, input: RecordUsageRequest) -> Result<(), AppError> {
     repo::record_usage(pool, &input).await
 }
 
@@ -37,6 +34,14 @@ pub async fn get_personal_usage(
     repo::get_personal_usage(pool, user_id, period).await
 }
 
+pub async fn get_project_usage(
+    pool: &PgPool,
+    project_id: Uuid,
+    period: Option<&str>,
+) -> Result<UsageSummary, AppError> {
+    repo::get_project_usage(pool, project_id, period).await
+}
+
 pub async fn check_budget(
     pool: &PgPool,
     org_id: Uuid,
@@ -45,8 +50,6 @@ pub async fn check_budget(
     repo::check_budget(pool, org_id, user_id).await
 }
 
-pub async fn get_platform_stats(
-    pool: &PgPool,
-) -> Result<Option<PlatformStats>, AppError> {
+pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, AppError> {
     repo::get_platform_stats(pool).await
 }

@@ -1173,6 +1173,7 @@ Record token usage. Same request body as `POST /internal/usage`.
   "userId": "uuid (required)",
   "zeroUserId": "string (optional)",
   "agentId": "uuid (optional)",
+  "projectId": "uuid (optional)",
   "model": "string (required)",
   "inputTokens": "integer (required)",
   "outputTokens": "integer (required)",
@@ -1288,6 +1289,7 @@ Records token usage from an upstream service (e.g., aura-router).
   "userId": "uuid (required)",
   "zeroUserId": "string (optional — if provided, resolves to internal userId)",
   "agentId": "uuid (optional)",
+  "projectId": "uuid (optional)",
   "model": "string (required)",
   "inputTokens": "integer (required)",
   "outputTokens": "integer (required)",
@@ -1337,6 +1339,87 @@ Lists integrations for an organization (internal access).
 **Response:** 200
 
 Array of `OrgIntegration`.
+
+---
+
+### GET /internal/projects/:projectId/usage
+
+Query project-level token usage and cost.
+
+**Auth:** Internal
+
+**Path params:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `projectId` | UUID | Project ID |
+
+**Query params:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `period` | string | No | One of: `day`, `week`, `month`. Omit for all-time. |
+
+**Response:** 200
+
+```json
+{
+  "totalInputTokens": "integer",
+  "totalOutputTokens": "integer",
+  "totalTokens": "integer",
+  "totalCostUsd": "float"
+}
+```
+
+---
+
+### GET /internal/orgs/:id/usage
+
+Query org-level token usage and cost.
+
+**Auth:** Internal
+
+**Path params:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Organization ID |
+
+**Query params:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `period` | string | No | One of: `day`, `week`, `month`. Omit for all-time. |
+
+**Response:** 200
+
+```json
+{
+  "totalInputTokens": "integer",
+  "totalOutputTokens": "integer",
+  "totalTokens": "integer",
+  "totalCostUsd": "float"
+}
+```
+
+---
+
+### GET /internal/usage/network
+
+Query network-wide token usage and cost.
+
+**Auth:** Internal
+
+**Response:** 200
+
+```json
+{
+  "totalInputTokens": "integer",
+  "totalOutputTokens": "integer",
+  "totalTokens": "integer",
+  "totalCostUsd": "float"
+}
+```
 
 ---
 

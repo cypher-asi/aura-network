@@ -17,9 +17,9 @@ fn period_to_date_clause(period: Option<&str>) -> &'static str {
 pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(), AppError> {
     sqlx::query(
         r#"
-        INSERT INTO token_usage_daily (org_id, user_id, agent_id, model, date, input_tokens, output_tokens, estimated_cost_usd, duration_ms)
-        VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)
-        ON CONFLICT (COALESCE(org_id, '00000000-0000-0000-0000-000000000000'), user_id, COALESCE(agent_id, '00000000-0000-0000-0000-000000000000'), model, date)
+        INSERT INTO token_usage_daily (org_id, user_id, agent_id, project_id, model, date, input_tokens, output_tokens, estimated_cost_usd, duration_ms)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8, $9)
+        ON CONFLICT (COALESCE(org_id, '00000000-0000-0000-0000-000000000000'), user_id, COALESCE(agent_id, '00000000-0000-0000-0000-000000000000'), COALESCE(project_id, '00000000-0000-0000-0000-000000000000'), model, date)
         DO UPDATE SET
             input_tokens = token_usage_daily.input_tokens + EXCLUDED.input_tokens,
             output_tokens = token_usage_daily.output_tokens + EXCLUDED.output_tokens,
@@ -30,6 +30,7 @@ pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(
     .bind(input.org_id)
     .bind(input.user_id)
     .bind(input.agent_id)
+    .bind(input.project_id)
     .bind(&input.model)
     .bind(input.input_tokens)
     .bind(input.output_tokens)
@@ -119,6 +120,33 @@ pub async fn get_personal_usage(
 
     let row = sqlx::query_as::<_, UsageSummary>(&query)
         .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(row)
+}
+
+pub async fn get_project_usage(
+    pool: &PgPool,
+    project_id: Uuid,
+    period: Option<&str>,
+) -> Result<UsageSummary, AppError> {
+    let date_clause = period_to_date_clause(period);
+
+    let query = format!(
+        r#"
+        SELECT
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+        FROM token_usage_daily
+        WHERE project_id = $1 {date_clause}
+        "#,
+    );
+
+    let row = sqlx::query_as::<_, UsageSummary>(&query)
+        .bind(project_id)
         .fetch_one(pool)
         .await?;
 

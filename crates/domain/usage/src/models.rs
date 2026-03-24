@@ -38,6 +38,7 @@ pub struct RecordUsageRequest {
     pub user_id: Uuid,
     pub zero_user_id: Option<String>,
     pub agent_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
     pub model: String,
     pub input_tokens: i64,
     pub output_tokens: i64,

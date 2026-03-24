@@ -134,6 +134,15 @@ pub fn create_router() -> Router<AppState> {
             get(handlers::internal::check_budget),
         )
         .route(
+            "/internal/projects/:projectId/usage",
+            get(handlers::internal::get_project_usage),
+        )
+        .route(
+            "/internal/orgs/:id/usage",
+            get(handlers::internal::get_org_usage),
+        )
+        .route("/internal/usage/network", get(handlers::internal::get_network_usage))
+        .route(
             "/internal/orgs/:id/integrations",
             get(handlers::internal::list_org_integrations),
         )

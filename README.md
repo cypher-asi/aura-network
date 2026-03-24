@@ -175,8 +175,12 @@ Authenticated via `X-Internal-Token` header. Called by aura-swarm and other back
 |---|---|---|
 | GET | `/internal/users/:zeroUserId` | Look up user by zOS ID |
 | POST | `/internal/posts` | Post to feed |
-| POST | `/internal/usage` | Record token usage. Accepts optional `zeroUserId` to resolve internal user ID. `orgId` is optional. |
+| POST | `/internal/usage` | Record token usage. Accepts `zeroUserId`, `projectId`, `durationMs`. |
 | GET | `/internal/orgs/:id/members/:userId/budget` | Check credit budget + current usage |
+| GET | `/internal/projects/:projectId/usage` | Query project-level usage + cost |
+| GET | `/internal/orgs/:id/usage` | Query org-level usage + cost |
+| GET | `/internal/usage/network` | Query network-wide usage + cost |
+| GET | `/internal/orgs/:id/integrations` | List org integrations |
 
 ### Real-Time
 
