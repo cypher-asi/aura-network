@@ -42,6 +42,7 @@ pub struct RecordUsageRequest {
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub estimated_cost_usd: f64,
+    pub duration_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]

@@ -217,7 +217,7 @@ Error codes: `NOT_FOUND` (404), `UNAUTHORIZED` (401), `FORBIDDEN` (403), `BAD_RE
 ```
 Auth:       zOS API (login) -> gets JWT
 Network:    aura-network (profiles, orgs, agents, feed, follows, leaderboard, stats, projects)
-Storage:    aura-storage (specs, tasks, sessions, messages, project agents, logs)
+Storage:    aura-storage (specs, tasks, sessions, events, project agents, logs)
 Billing:    zero-payments-server (credit balance, debit via JWT)
 Local:      RocksDB (terminal, filesystem, settings)
 ```
@@ -231,7 +231,7 @@ The desktop's local Axum server proxies shared-data requests to aura-network and
 2. Check credit budget:    GET aura-network /internal/orgs/:id/members/:userId/budget
 3. Update agent status:    POST aura-storage /internal/project-agents/:id/status
 4. Create session:         POST aura-storage /internal/sessions
-5. Write messages:         POST aura-storage /internal/messages
+5. Write events:           POST aura-storage /internal/events
 6. Write logs:             POST aura-storage /internal/logs
 7. Record token usage:     POST aura-network /internal/usage
 8. Post to feed:           POST aura-network /internal/posts

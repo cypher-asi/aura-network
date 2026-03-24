@@ -17,13 +17,14 @@ fn period_to_date_clause(period: Option<&str>) -> &'static str {
 pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(), AppError> {
     sqlx::query(
         r#"
-        INSERT INTO token_usage_daily (org_id, user_id, agent_id, model, date, input_tokens, output_tokens, estimated_cost_usd)
-        VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7)
+        INSERT INTO token_usage_daily (org_id, user_id, agent_id, model, date, input_tokens, output_tokens, estimated_cost_usd, duration_ms)
+        VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)
         ON CONFLICT (COALESCE(org_id, '00000000-0000-0000-0000-000000000000'), user_id, COALESCE(agent_id, '00000000-0000-0000-0000-000000000000'), model, date)
         DO UPDATE SET
             input_tokens = token_usage_daily.input_tokens + EXCLUDED.input_tokens,
             output_tokens = token_usage_daily.output_tokens + EXCLUDED.output_tokens,
-            estimated_cost_usd = token_usage_daily.estimated_cost_usd + EXCLUDED.estimated_cost_usd
+            estimated_cost_usd = token_usage_daily.estimated_cost_usd + EXCLUDED.estimated_cost_usd,
+            duration_ms = token_usage_daily.duration_ms + EXCLUDED.duration_ms
         "#,
     )
     .bind(input.org_id)
@@ -33,6 +34,7 @@ pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(
     .bind(input.input_tokens)
     .bind(input.output_tokens)
     .bind(input.estimated_cost_usd)
+    .bind(input.duration_ms.unwrap_or(0))
     .execute(pool)
     .await?;
 
