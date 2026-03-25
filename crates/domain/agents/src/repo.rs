@@ -132,6 +132,7 @@ pub async fn update(
             skills = COALESCE($6, skills),
             icon = COALESCE($7, icon),
             machine_type = COALESCE($8, machine_type),
+            wallet_address = COALESCE($9, wallet_address),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -145,6 +146,7 @@ pub async fn update(
     .bind(&skills_json)
     .bind(&input.icon)
     .bind(&input.machine_type)
+    .bind(&input.wallet_address)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".into()))?;

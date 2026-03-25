@@ -100,7 +100,7 @@ On first authenticated request, the user is auto-created with a profile.
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
-| POST | `/api/agents` | Create agent (auto-creates profile). Optional: `machineType` ("local" or "remote", default: "local") | JWT |
+| POST | `/api/agents` | Create agent (auto-creates profile). Optional: `machineType` ("local"/"remote", default: "local"), `walletAddress` | JWT |
 | GET | `/api/agents` | List agents (filter: `?org_id=`) | JWT |
 | GET | `/api/agents/:id` | Get agent | JWT |
 | PUT | `/api/agents/:id` | Update agent (owner) | JWT |

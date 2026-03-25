@@ -519,6 +519,7 @@ Creates a new agent.
   "skills": ["string"],
   "icon": "string | null",
   "machineType": "local | remote",
+  "walletAddress": "string | null",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }
@@ -582,7 +583,8 @@ Updates an agent.
   "systemPrompt": "string (optional)",
   "skills": ["string"] (optional),
   "icon": "string (optional)",
-  "machineType": "local | remote (optional)"
+  "machineType": "local | remote (optional)",
+  "walletAddress": "string (optional)"
 }
 ```
 

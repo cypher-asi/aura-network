@@ -15,6 +15,7 @@ pub struct Agent {
     pub skills: serde_json::Value,
     pub icon: Option<String>,
     pub machine_type: String,
+    pub wallet_address: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -42,4 +43,5 @@ pub struct UpdateAgentRequest {
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
+    pub wallet_address: Option<String>,
 }
