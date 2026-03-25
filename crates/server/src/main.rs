@@ -21,16 +21,13 @@ async fn main() {
         )
         .init();
 
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    let auth0_domain = std::env::var("AUTH0_DOMAIN")
-        .expect("AUTH0_DOMAIN must be set");
-    let auth0_audience = std::env::var("AUTH0_AUDIENCE")
-        .expect("AUTH0_AUDIENCE must be set");
-    let cookie_secret = std::env::var("AUTH_COOKIE_SECRET")
-        .expect("AUTH_COOKIE_SECRET must be set");
-    let internal_token = std::env::var("INTERNAL_SERVICE_TOKEN")
-        .expect("INTERNAL_SERVICE_TOKEN must be set");
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let auth0_domain = std::env::var("AUTH0_DOMAIN").expect("AUTH0_DOMAIN must be set");
+    let auth0_audience = std::env::var("AUTH0_AUDIENCE").expect("AUTH0_AUDIENCE must be set");
+    let cookie_secret =
+        std::env::var("AUTH_COOKIE_SECRET").expect("AUTH_COOKIE_SECRET must be set");
+    let internal_token =
+        std::env::var("INTERNAL_SERVICE_TOKEN").expect("INTERNAL_SERVICE_TOKEN must be set");
     let port: u16 = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse()
@@ -44,14 +41,25 @@ async fn main() {
 
     let (events_tx, _) = tokio::sync::broadcast::channel::<String>(256);
 
-    let aura_storage_url = std::env::var("AURA_STORAGE_URL").ok().filter(|s| !s.is_empty());
+    let aura_storage_url = std::env::var("AURA_STORAGE_URL")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let zos_api_url = std::env::var("ZOS_API_URL")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let zos_api_internal_token = std::env::var("ZOS_API_INTERNAL_TOKEN")
+        .ok()
+        .filter(|s| !s.is_empty());
 
     let state = AppState {
         pool,
         validator: TokenValidator::new(auth0_domain, auth0_audience, cookie_secret),
         internal_token: InternalToken(internal_token),
         events_tx,
+        http_client: reqwest::Client::new(),
         aura_storage_url,
+        zos_api_url,
+        zos_api_internal_token,
     };
 
     let cors = match std::env::var("CORS_ORIGINS") {

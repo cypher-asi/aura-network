@@ -9,7 +9,10 @@ pub struct AppState {
     pub validator: TokenValidator,
     pub internal_token: InternalToken,
     pub events_tx: broadcast::Sender<String>,
+    pub http_client: reqwest::Client,
     pub aura_storage_url: Option<String>,
+    pub zos_api_url: Option<String>,
+    pub zos_api_internal_token: Option<String>,
 }
 
 impl AsRef<PgPool> for AppState {

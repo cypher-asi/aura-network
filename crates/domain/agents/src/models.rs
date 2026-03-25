@@ -33,7 +33,7 @@ pub struct CreateAgentRequest {
     pub machine_type: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateAgentRequest {
     pub name: Option<String>,

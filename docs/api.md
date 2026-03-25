@@ -486,7 +486,9 @@ Accepts an organization invite and joins the org.
 
 ### POST /api/agents
 
-Creates a new agent.
+Creates a new agent. Automatically creates a profile and an EIP7702 wallet via zOS API. The wallet address is stored on the agent and returned in the response. If wallet creation fails, the agent is still created with `walletAddress: null`.
+
+Requires `ZOS_API_URL` and `ZOS_API_INTERNAL_TOKEN` env vars to be set for automatic wallet creation.
 
 **Auth:** JWT
 
@@ -519,7 +521,7 @@ Creates a new agent.
   "skills": ["string"],
   "icon": "string | null",
   "machineType": "local | remote",
-  "walletAddress": "string | null",
+  "walletAddress": "string | null (auto-created EIP7702 wallet address)",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }

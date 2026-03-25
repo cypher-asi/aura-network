@@ -45,6 +45,9 @@ curl http://localhost:3000/health
 | `AUTH0_AUDIENCE` | Yes | Auth0 audience identifier |
 | `AUTH_COOKIE_SECRET` | Yes | Shared secret for HS256 token validation (same as zOS/zero-payments-server) |
 | `INTERNAL_SERVICE_TOKEN` | Yes | Token for service-to-service auth (aura-swarm → aura-network) |
+| `AURA_STORAGE_URL` | No | aura-storage base URL (for project agent count check on delete) |
+| `ZOS_API_URL` | No | zOS API base URL for agent wallet creation (e.g., `https://zosapi.zero.tech`) |
+| `ZOS_API_INTERNAL_TOKEN` | No | Internal service token for zOS API (must match zOS API's `INTERNAL_SERVICE_TOKEN`) |
 | `CORS_ORIGINS` | No | Comma-separated allowed origins. Omit for permissive (dev mode) |
 | `LOG_LEVEL` | No | Tracing filter (default: `info`) |
 
@@ -100,7 +103,7 @@ On first authenticated request, the user is auto-created with a profile.
 
 | Method | Path | Description | Auth |
 |---|---|---|---|
-| POST | `/api/agents` | Create agent (auto-creates profile). Optional: `machineType` ("local"/"remote", default: "local"), `walletAddress` | JWT |
+| POST | `/api/agents` | Create agent (auto-creates profile, auto-creates EIP7702 wallet via zOS API). Optional: `machineType` ("local"/"remote", default: "local") | JWT |
 | GET | `/api/agents` | List agents (filter: `?org_id=`) | JWT |
 | GET | `/api/agents/:id` | Get agent | JWT |
 | PUT | `/api/agents/:id` | Update agent (owner) | JWT |
