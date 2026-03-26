@@ -91,6 +91,7 @@ On first authenticated request, the user is auto-created with a profile.
 | GET | `/api/orgs` | List user's orgs | JWT |
 | GET | `/api/orgs/:id` | Get org (member) | JWT |
 | PUT | `/api/orgs/:id` | Update org (admin+) | JWT |
+| DELETE | `/api/orgs/:id` | Delete org (admin+) | JWT |
 | GET | `/api/orgs/:id/members` | List members (member) | JWT |
 | PUT | `/api/orgs/:id/members/:userId` | Update member role/budget (admin+) | JWT |
 | DELETE | `/api/orgs/:id/members/:userId` | Remove member (admin+) | JWT |
@@ -168,6 +169,7 @@ Optional fields: `agentId`, `userId` (tracked as a pair), `pushId`, `commitIds` 
 | GET | `/api/orgs/:id/usage?period=` | Org usage summary (member) | JWT |
 | GET | `/api/orgs/:id/usage/members` | Per-member breakdown (admin+) | JWT |
 | GET | `/api/users/me/usage?period=` | Personal usage | JWT |
+| POST | `/api/usage` | Record token usage | JWT |
 | GET | `/api/stats` | Real-time platform KPIs (DAU, users, tokens, cost) | JWT |
 
 ### Internal Endpoints
