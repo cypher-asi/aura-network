@@ -523,6 +523,7 @@ Requires `ZOS_API_URL` and `ZOS_API_INTERNAL_TOKEN` env vars to be set for autom
   "icon": "string | null",
   "machineType": "local | remote",
   "walletAddress": "string | null (auto-created EIP7702 wallet address)",
+  "vmId": "string | null",
   "lastActiveAt": "datetime | null",
   "createdAt": "datetime",
   "updatedAt": "datetime"
@@ -588,7 +589,8 @@ Updates an agent.
   "skills": ["string"] (optional),
   "icon": "string (optional)",
   "machineType": "local | remote (optional)",
-  "walletAddress": "string (optional)"
+  "walletAddress": "string (optional)",
+  "vmId": "string (optional)"
 }
 ```
 
