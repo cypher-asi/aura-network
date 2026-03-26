@@ -3,7 +3,10 @@ use uuid::Uuid;
 
 use aura_network_core::AppError;
 
-use crate::models::{BudgetStatus, MemberUsage, PlatformStats, RecordUsageRequest, UsageSummary};
+use crate::models::{
+    BudgetStatus, MemberUsage, PlatformStats, RealTimePlatformStats, RecordUsageRequest,
+    UsageSummary,
+};
 use crate::repo;
 
 pub async fn record_usage(pool: &PgPool, input: RecordUsageRequest) -> Result<(), AppError> {
@@ -52,4 +55,10 @@ pub async fn check_budget(
 
 pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, AppError> {
     repo::get_platform_stats(pool).await
+}
+
+pub async fn get_realtime_platform_stats(
+    pool: &PgPool,
+) -> Result<RealTimePlatformStats, AppError> {
+    repo::get_realtime_platform_stats(pool).await
 }

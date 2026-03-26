@@ -7,8 +7,8 @@ use aura_network_core::AppError;
 use aura_network_orgs::repo as org_repo;
 use aura_network_usage::{handlers, models};
 
-use crate::state::AppState;
 use super::resolve_user;
+use crate::state::AppState;
 
 pub async fn get_org_usage(
     auth: AuthUser,
@@ -57,9 +57,7 @@ pub async fn record_usage(
 pub async fn get_stats(
     _auth: AuthUser,
     State(state): State<AppState>,
-) -> Result<Json<Option<models::PlatformStats>>, AppError> {
-    // Platform stats — authenticated users can view for now.
-    // Tighten to platform admin role when that concept is introduced.
-    let stats = handlers::get_platform_stats(&state.pool).await?;
+) -> Result<Json<models::RealTimePlatformStats>, AppError> {
+    let stats = handlers::get_realtime_platform_stats(&state.pool).await?;
     Ok(Json(stats))
 }

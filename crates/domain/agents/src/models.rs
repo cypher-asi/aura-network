@@ -16,6 +16,7 @@ pub struct Agent {
     pub icon: Option<String>,
     pub machine_type: String,
     pub wallet_address: Option<String>,
+    pub last_active_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

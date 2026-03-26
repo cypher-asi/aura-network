@@ -3,7 +3,10 @@ use uuid::Uuid;
 
 use aura_network_core::AppError;
 
-use crate::models::{BudgetStatus, MemberUsage, PlatformStats, RecordUsageRequest, UsageSummary};
+use crate::models::{
+    BudgetStatus, MemberUsage, PlatformStats, RealTimePlatformStats, RecordUsageRequest,
+    UsageSummary,
+};
 
 fn period_to_date_clause(period: Option<&str>) -> &'static str {
     match period {
@@ -205,6 +208,28 @@ pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, 
         "#,
     )
     .fetch_optional(pool)
+    .await?;
+
+    Ok(stats)
+}
+
+pub async fn get_realtime_platform_stats(
+    pool: &PgPool,
+) -> Result<RealTimePlatformStats, AppError> {
+    let stats = sqlx::query_as::<_, RealTimePlatformStats>(
+        r#"
+        SELECT
+            COALESCE((SELECT COUNT(DISTINCT user_id) FROM token_usage_daily WHERE date = CURRENT_DATE), 0)::int8 as daily_active_users,
+            COALESCE((SELECT COUNT(*) FROM users), 0)::int8 as total_users,
+            COALESCE((SELECT COUNT(*) FROM users WHERE created_at::date = CURRENT_DATE), 0)::int8 as new_signups_today,
+            COALESCE((SELECT COUNT(*) FROM projects), 0)::int8 as total_projects,
+            COALESCE((SELECT SUM(input_tokens) FROM token_usage_daily), 0)::int8 as total_input_tokens,
+            COALESCE((SELECT SUM(output_tokens) FROM token_usage_daily), 0)::int8 as total_output_tokens,
+            COALESCE((SELECT SUM(input_tokens + output_tokens) FROM token_usage_daily), 0)::int8 as total_tokens,
+            COALESCE((SELECT SUM(estimated_cost_usd)::float8 FROM token_usage_daily), 0.0) as total_cost_usd
+        "#,
+    )
+    .fetch_one(pool)
     .await?;
 
     Ok(stats)

@@ -168,7 +168,7 @@ Optional fields: `agentId`, `userId` (tracked as a pair), `pushId`, `commitIds` 
 | GET | `/api/orgs/:id/usage?period=` | Org usage summary (member) | JWT |
 | GET | `/api/orgs/:id/usage/members` | Per-member breakdown (admin+) | JWT |
 | GET | `/api/users/me/usage?period=` | Personal usage | JWT |
-| GET | `/api/stats` | Global platform KPIs | JWT |
+| GET | `/api/stats` | Real-time platform KPIs (DAU, users, tokens, cost) | JWT |
 
 ### Internal Endpoints
 

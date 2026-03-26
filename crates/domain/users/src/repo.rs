@@ -5,7 +5,10 @@ use aura_network_core::AppError;
 
 use crate::models::{CreateUserFromToken, Profile, UpdateUserRequest, User};
 
-pub async fn upsert_from_token(pool: &PgPool, input: &CreateUserFromToken) -> Result<User, AppError> {
+pub async fn upsert_from_token(
+    pool: &PgPool,
+    input: &CreateUserFromToken,
+) -> Result<User, AppError> {
     let user = sqlx::query_as::<_, User>(
         r#"
         INSERT INTO users (zero_user_id, display_name, profile_image, primary_zid)
@@ -14,6 +17,7 @@ pub async fn upsert_from_token(pool: &PgPool, input: &CreateUserFromToken) -> Re
             display_name = EXCLUDED.display_name,
             profile_image = EXCLUDED.profile_image,
             primary_zid = EXCLUDED.primary_zid,
+            last_login_at = NOW(),
             updated_at = NOW()
         RETURNING *
         "#,
@@ -61,10 +65,16 @@ pub async fn get_by_zero_id(pool: &PgPool, zero_user_id: &str) -> Result<User, A
         .ok_or_else(|| AppError::NotFound("User not found".into()))
 }
 
-pub async fn update(pool: &PgPool, user_id: Uuid, input: &UpdateUserRequest) -> Result<User, AppError> {
+pub async fn update(
+    pool: &PgPool,
+    user_id: Uuid,
+    input: &UpdateUserRequest,
+) -> Result<User, AppError> {
     if let Some(ref bio) = input.bio {
         if bio.chars().count() > 400 {
-            return Err(AppError::BadRequest("Bio must be 400 characters or less".into()));
+            return Err(AppError::BadRequest(
+                "Bio must be 400 characters or less".into(),
+            ));
         }
     }
 

@@ -66,6 +66,7 @@ Returns the authenticated user.
   "bio": "string | null",
   "location": "string | null",
   "website": "string | null",
+  "lastLoginAt": "datetime | null",
   "createdAt": "datetime",
   "updatedAt": "datetime",
   "profileId": "uuid | null"
@@ -522,6 +523,7 @@ Requires `ZOS_API_URL` and `ZOS_API_INTERNAL_TOKEN` env vars to be set for autom
   "icon": "string | null",
   "machineType": "local | remote",
   "walletAddress": "string | null (auto-created EIP7702 wallet address)",
+  "lastActiveAt": "datetime | null",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }
@@ -1192,7 +1194,7 @@ Record token usage. Same request body as `POST /internal/usage`.
 
 ### GET /api/stats
 
-Returns platform-wide statistics for the current day.
+Returns real-time platform-wide statistics aggregated from live data.
 
 **Auth:** JWT
 
@@ -1200,16 +1202,14 @@ Returns platform-wide statistics for the current day.
 
 ```json
 {
-  "id": "uuid",
-  "date": "date",
-  "dailyActiveUsers": "integer",
+  "dailyActiveUsers": "integer (users with token usage today)",
   "totalUsers": "integer",
-  "newSignups": "integer",
-  "projectsCreated": "integer",
-  "totalInputTokens": "integer",
-  "totalOutputTokens": "integer",
-  "totalRevenueUsd": "float",
-  "createdAt": "datetime"
+  "newSignupsToday": "integer (users created today)",
+  "totalProjects": "integer",
+  "totalInputTokens": "integer (all-time)",
+  "totalOutputTokens": "integer (all-time)",
+  "totalTokens": "integer (all-time)",
+  "totalCostUsd": "float (all-time)"
 }
 ```
 
@@ -1245,6 +1245,7 @@ Resolves a user by their zOS user ID.
   "bio": "string | null",
   "location": "string | null",
   "website": "string | null",
+  "lastLoginAt": "datetime | null",
   "createdAt": "datetime",
   "updatedAt": "datetime"
 }

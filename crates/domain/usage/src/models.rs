@@ -31,6 +31,19 @@ pub struct PlatformStats {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct RealTimePlatformStats {
+    pub daily_active_users: i64,
+    pub total_users: i64,
+    pub new_signups_today: i64,
+    pub total_projects: i64,
+    pub total_input_tokens: i64,
+    pub total_output_tokens: i64,
+    pub total_tokens: i64,
+    pub total_cost_usd: f64,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecordUsageRequest {
