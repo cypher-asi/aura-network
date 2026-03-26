@@ -122,6 +122,10 @@ pub fn create_router() -> Router<AppState> {
         )
         .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
+        .route(
+            "/api/orgs/:id/budget",
+            get(handlers::usage::check_budget),
+        )
         // Internal
         .route(
             "/internal/users/:zeroUserId",

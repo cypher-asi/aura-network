@@ -61,3 +61,14 @@ pub async fn get_stats(
     let stats = handlers::get_realtime_platform_stats(&state.pool).await?;
     Ok(Json(stats))
 }
+
+pub async fn check_budget(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(org_id): Path<Uuid>,
+) -> Result<Json<models::BudgetStatus>, AppError> {
+    let user = resolve_user(&state.pool, &auth).await?;
+    org_repo::get_member(&state.pool, org_id, user.id).await?;
+    let status = handlers::check_budget(&state.pool, org_id, user.id).await?;
+    Ok(Json(status))
+}
