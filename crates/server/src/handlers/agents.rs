@@ -36,7 +36,7 @@ pub async fn create_agent(
             .http_client
             .post(format!("{zos_url}/thirdweb/initialize-agent-wallet"))
             .header("x-internal-token", zos_token)
-            .json(&serde_json::json!({ "agentId": agent_id, "ownerUserId": user.id }))
+            .json(&serde_json::json!({ "agentId": agent_id, "ownerUserId": auth.user_id }))
             .send()
             .await
         {
