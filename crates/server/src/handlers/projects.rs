@@ -9,8 +9,8 @@ use aura_network_core::AppError;
 use aura_network_orgs::repo as org_repo;
 use aura_network_projects::{handlers, models};
 
-use crate::state::AppState;
 use super::resolve_user;
+use crate::state::AppState;
 
 #[derive(Debug, Deserialize)]
 pub struct ProjectListQuery {

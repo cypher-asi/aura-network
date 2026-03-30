@@ -35,10 +35,6 @@ pub async fn update_agent(
     repo::update(pool, agent_id, user_id, &input).await
 }
 
-pub async fn delete_agent(
-    pool: &PgPool,
-    agent_id: Uuid,
-    user_id: Uuid,
-) -> Result<(), AppError> {
+pub async fn delete_agent(pool: &PgPool, agent_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
     repo::delete(pool, agent_id, user_id).await
 }

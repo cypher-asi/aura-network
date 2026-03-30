@@ -76,7 +76,8 @@ pub async fn update_member(
     Json(input): Json<models::UpdateMemberRequest>,
 ) -> Result<Json<models::OrgMember>, AppError> {
     let user = super::resolve_user(&state.pool, &auth).await?;
-    let member = handlers::update_member(&state.pool, org_id, user.id, target_user_id, input).await?;
+    let member =
+        handlers::update_member(&state.pool, org_id, user.id, target_user_id, input).await?;
     Ok(Json(member))
 }
 

@@ -29,7 +29,9 @@ fn generate_slug(name: &str) -> String {
 fn validate_role(role: &str) -> Result<(), AppError> {
     match role {
         "owner" | "admin" | "member" => Ok(()),
-        _ => Err(AppError::BadRequest(format!("Invalid role: '{role}'. Must be owner, admin, or member"))),
+        _ => Err(AppError::BadRequest(format!(
+            "Invalid role: '{role}'. Must be owner, admin, or member"
+        ))),
     }
 }
 
@@ -40,7 +42,9 @@ pub async fn create(
     input: &CreateOrgRequest,
 ) -> Result<Org, AppError> {
     if input.name.trim().is_empty() {
-        return Err(AppError::BadRequest("Organization name must not be empty".into()));
+        return Err(AppError::BadRequest(
+            "Organization name must not be empty".into(),
+        ));
     }
 
     let slug = generate_slug(&input.name);
@@ -105,12 +109,10 @@ pub async fn get(pool: &PgPool, org_id: Uuid) -> Result<Org, AppError> {
 
 pub async fn delete(pool: &PgPool, org_id: Uuid) -> Result<(), AppError> {
     // Block deletion if org has existing projects or agents
-    let project_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM projects WHERE org_id = $1",
-    )
-    .bind(org_id)
-    .fetch_one(pool)
-    .await?;
+    let project_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM projects WHERE org_id = $1")
+        .bind(org_id)
+        .fetch_one(pool)
+        .await?;
 
     if project_count > 0 {
         return Err(AppError::BadRequest(
@@ -118,12 +120,10 @@ pub async fn delete(pool: &PgPool, org_id: Uuid) -> Result<(), AppError> {
         ));
     }
 
-    let agent_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM agents WHERE org_id = $1",
-    )
-    .bind(org_id)
-    .fetch_one(pool)
-    .await?;
+    let agent_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM agents WHERE org_id = $1")
+        .bind(org_id)
+        .fetch_one(pool)
+        .await?;
 
     if agent_count > 0 {
         return Err(AppError::BadRequest(
@@ -196,19 +196,13 @@ pub async fn list_members(pool: &PgPool, org_id: Uuid) -> Result<Vec<OrgMember>,
     Ok(members)
 }
 
-pub async fn get_member(
-    pool: &PgPool,
-    org_id: Uuid,
-    user_id: Uuid,
-) -> Result<OrgMember, AppError> {
-    sqlx::query_as::<_, OrgMember>(
-        "SELECT * FROM org_members WHERE org_id = $1 AND user_id = $2",
-    )
-    .bind(org_id)
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::Forbidden("Not a member of this organization".into()))
+pub async fn get_member(pool: &PgPool, org_id: Uuid, user_id: Uuid) -> Result<OrgMember, AppError> {
+    sqlx::query_as::<_, OrgMember>("SELECT * FROM org_members WHERE org_id = $1 AND user_id = $2")
+        .bind(org_id)
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Not a member of this organization".into()))
 }
 
 pub async fn update_member(
@@ -320,13 +314,11 @@ pub async fn accept_invite(
     user_id: Uuid,
     input: &AcceptInviteRequest,
 ) -> Result<OrgMember, AppError> {
-    let invite = sqlx::query_as::<_, OrgInvite>(
-        "SELECT * FROM org_invites WHERE token = $1",
-    )
-    .bind(token)
-    .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("Invite not found".into()))?;
+    let invite = sqlx::query_as::<_, OrgInvite>("SELECT * FROM org_invites WHERE token = $1")
+        .bind(token)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Invite not found".into()))?;
 
     if invite.status != "pending" {
         return Err(AppError::BadRequest("Invite is no longer valid".into()));
@@ -350,7 +342,9 @@ pub async fn accept_invite(
     .await?;
 
     if existing.is_some() {
-        return Err(AppError::Conflict("Already a member of this organization".into()));
+        return Err(AppError::Conflict(
+            "Already a member of this organization".into(),
+        ));
     }
 
     // Accept invite and create membership atomically

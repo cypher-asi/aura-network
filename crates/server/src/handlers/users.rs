@@ -6,8 +6,8 @@ use aura_network_auth::AuthUser;
 use aura_network_core::AppError;
 use aura_network_users::{handlers, models, repo};
 
-use crate::state::AppState;
 use super::resolve_user;
+use crate::state::AppState;
 
 async fn user_with_profile(pool: &sqlx::PgPool, user: models::User) -> models::UserResponse {
     let profile_id = repo::get_profile_by_user_id(pool, user.id)
