@@ -27,8 +27,22 @@ pub async fn get_user_by_zero_id(
 pub async fn post_activity(
     _auth: InternalAuth,
     State(state): State<AppState>,
-    Json(input): Json<aura_network_feed::models::CreateActivityEventRequest>,
+    Json(mut input): Json<aura_network_feed::models::CreateActivityEventRequest>,
 ) -> Result<Json<aura_network_feed::models::ActivityEvent>, AppError> {
+    // Resolve profile_id from user_id. The caller (orbit) sends the zOS user UUID
+    // from the JWT, which is stored as zero_user_id in the users table.
+    // Look up the user by zero_user_id, then get their profile.
+    if let Some(user_id) = input.user_id {
+        if let Ok(user) =
+            aura_network_users::repo::get_by_zero_id(&state.pool, &user_id.to_string()).await
+        {
+            if let Ok(profile) =
+                aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await
+            {
+                input.profile_id = profile.id;
+            }
+        }
+    }
     let event = aura_network_feed::handlers::post_activity(&state.pool, input).await?;
 
     // Broadcast to WebSocket clients
