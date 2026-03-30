@@ -45,6 +45,10 @@ pub struct UpdateAgentRequest {
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
+    /// Server-set only — ignored in user-facing deserialization.
+    #[serde(skip_deserializing)]
     pub wallet_address: Option<String>,
+    /// Server-set only — ignored in user-facing deserialization.
+    #[serde(skip_deserializing)]
     pub vm_id: Option<String>,
 }
