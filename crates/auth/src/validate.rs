@@ -51,9 +51,7 @@ impl TokenValidator {
     fn validate_hs256(&self, token: &str) -> Result<TokenClaims, String> {
         let key = DecodingKey::from_secret(self.cookie_secret.as_bytes());
         let mut validation = Validation::new(Algorithm::HS256);
-        // zOS self-signed tokens use zOS audience and may not include exp/iat claims
-        // — matches zero-payments-server behavior where these tokens are session-based
-        validation.validate_exp = false;
+        // zOS API sets exp to 1 year from issuance on self-signed tokens
         validation.validate_aud = false;
         validation.required_spec_claims.clear();
 
