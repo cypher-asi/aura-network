@@ -154,6 +154,7 @@ pub async fn get_feed(
 pub async fn get_profile_activity(
     pool: &PgPool,
     profile_id: Uuid,
+    viewer_user_id: Uuid,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<ActivityEvent>, AppError> {
@@ -161,6 +162,16 @@ pub async fn get_profile_activity(
         r#"
         SELECT * FROM activity_events
         WHERE profile_id = $1
+        AND (
+            project_id IS NULL
+            OR NOT EXISTS (
+                SELECT 1 FROM projects p
+                WHERE p.id = activity_events.project_id AND p.visibility = 'private'
+            )
+            OR org_id IN (
+                SELECT org_id FROM org_members WHERE user_id = $4
+            )
+        )
         ORDER BY created_at DESC
         LIMIT $2 OFFSET $3
         "#,
@@ -168,6 +179,7 @@ pub async fn get_profile_activity(
     .bind(profile_id)
     .bind(limit)
     .bind(offset)
+    .bind(viewer_user_id)
     .fetch_all(pool)
     .await?;
 

@@ -26,10 +26,11 @@ pub async fn get_feed(
 pub async fn get_profile_activity(
     pool: &PgPool,
     profile_id: Uuid,
+    viewer_user_id: Uuid,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<ActivityEvent>, AppError> {
-    repo::get_profile_activity(pool, profile_id, limit, offset).await
+    repo::get_profile_activity(pool, profile_id, viewer_user_id, limit, offset).await
 }
 
 pub async fn get_post(pool: &PgPool, post_id: Uuid) -> Result<ActivityEvent, AppError> {
