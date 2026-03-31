@@ -84,11 +84,18 @@ pub async fn list_agents(
 }
 
 pub async fn get_agent(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(agent_id): Path<Uuid>,
 ) -> Result<Json<models::Agent>, AppError> {
-    let agent = handlers::get_agent(&state.pool, agent_id).await?;
+    let user = super::resolve_user(&state.pool, &auth).await?;
+    let mut agent = handlers::get_agent(&state.pool, agent_id).await?;
+    // Strip sensitive fields if the caller doesn't own the agent
+    if agent.user_id != user.id {
+        agent.system_prompt = None;
+        agent.wallet_address = None;
+        agent.vm_id = None;
+    }
     Ok(Json(agent))
 }
 
