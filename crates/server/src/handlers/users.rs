@@ -21,7 +21,7 @@ pub async fn get_me(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<models::UserResponse>, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     Ok(Json(user_with_profile(&state.pool, user).await))
 }
 
@@ -30,7 +30,7 @@ pub async fn update_me(
     State(state): State<AppState>,
     Json(input): Json<models::UpdateUserRequest>,
 ) -> Result<Json<models::UserResponse>, AppError> {
-    let _existing = resolve_user(&state.pool, &auth).await?;
+    let _existing = resolve_user(&state, &auth).await?;
     let user = handlers::update_me(&state.pool, &auth.user_id, input).await?;
     Ok(Json(user_with_profile(&state.pool, user).await))
 }

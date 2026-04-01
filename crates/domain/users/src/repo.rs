@@ -14,7 +14,6 @@ pub async fn upsert_from_token(
         INSERT INTO users (zero_user_id, display_name, profile_image, primary_zid)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (zero_user_id) DO UPDATE SET
-            display_name = EXCLUDED.display_name,
             profile_image = EXCLUDED.profile_image,
             primary_zid = EXCLUDED.primary_zid,
             last_login_at = NOW(),
@@ -118,6 +117,21 @@ pub async fn get_profile_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<Prof
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Profile not found".into()))
+}
+
+pub async fn update_profile_display_name(
+    pool: &PgPool,
+    user_id: Uuid,
+    display_name: &str,
+) -> Result<(), AppError> {
+    sqlx::query(
+        "UPDATE profiles SET display_name = $1, updated_at = NOW() WHERE user_id = $2 AND profile_type = 'user'",
+    )
+    .bind(display_name)
+    .bind(user_id)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 pub async fn get_profile_by_agent_id(pool: &PgPool, agent_id: Uuid) -> Result<Profile, AppError> {

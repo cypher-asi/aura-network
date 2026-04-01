@@ -16,7 +16,7 @@ pub async fn get_org_usage(
     Path(org_id): Path<Uuid>,
     Query(query): Query<models::UsageQuery>,
 ) -> Result<Json<models::UsageSummary>, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     org_repo::get_member(&state.pool, org_id, user.id).await?;
     let usage = handlers::get_org_usage(&state.pool, org_id, query.period.as_deref()).await?;
     Ok(Json(usage))
@@ -28,7 +28,7 @@ pub async fn get_member_usage(
     Path(org_id): Path<Uuid>,
     Query(query): Query<models::UsageQuery>,
 ) -> Result<Json<Vec<models::MemberUsage>>, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     org_repo::require_role(&state.pool, org_id, user.id, "admin").await?;
     let usage = handlers::get_member_usage(&state.pool, org_id, query.period.as_deref()).await?;
     Ok(Json(usage))
@@ -39,7 +39,7 @@ pub async fn get_personal_usage(
     State(state): State<AppState>,
     Query(query): Query<models::UsageQuery>,
 ) -> Result<Json<models::UsageSummary>, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     let usage = handlers::get_personal_usage(&state.pool, user.id, query.period.as_deref()).await?;
     Ok(Json(usage))
 }
@@ -49,7 +49,7 @@ pub async fn record_usage(
     State(state): State<AppState>,
     Json(mut input): Json<models::RecordUsageRequest>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     input.user_id = user.id;
     handlers::record_usage(&state.pool, input).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
@@ -68,7 +68,7 @@ pub async fn check_budget(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<models::BudgetStatus>, AppError> {
-    let user = resolve_user(&state.pool, &auth).await?;
+    let user = resolve_user(&state, &auth).await?;
     org_repo::get_member(&state.pool, org_id, user.id).await?;
     let status = handlers::check_budget(&state.pool, org_id, user.id).await?;
     Ok(Json(status))

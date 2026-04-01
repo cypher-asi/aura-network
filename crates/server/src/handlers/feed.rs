@@ -47,7 +47,7 @@ pub async fn get_feed(
     State(state): State<AppState>,
     Query(query): Query<models::FeedQuery>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let events = handlers::get_feed(
         &state.pool,
         user.id,
@@ -65,7 +65,7 @@ pub async fn get_profile_activity(
     Path(profile_id): Path<Uuid>,
     Query(query): Query<aura_network_core::PaginationParams>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let events = handlers::get_profile_activity(
         &state.pool,
         profile_id,
@@ -91,7 +91,7 @@ pub async fn post_activity(
     State(state): State<AppState>,
     Json(input): Json<models::CreateActivityEventRequest>,
 ) -> Result<Json<models::ActivityEvent>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     verify_profile_ownership(&state.pool, input.profile_id, user.id).await?;
     let event = handlers::post_activity(&state.pool, input).await?;
 
@@ -121,7 +121,7 @@ pub async fn create_comment(
     Path(event_id): Path<Uuid>,
     Json(input): Json<models::CreateCommentRequest>,
 ) -> Result<Json<models::Comment>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     let comment = handlers::create_comment(&state.pool, event_id, profile.id, input).await?;
     Ok(Json(comment))
@@ -132,7 +132,7 @@ pub async fn delete_comment(
     State(state): State<AppState>,
     Path(comment_id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     handlers::delete_comment(&state.pool, comment_id, profile.id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)

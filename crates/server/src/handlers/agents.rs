@@ -24,7 +24,7 @@ pub async fn create_agent(
     State(state): State<AppState>,
     Json(input): Json<models::CreateAgentRequest>,
 ) -> Result<Json<models::Agent>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let mut agent = handlers::create_agent(&state.pool, user.id, input).await?;
 
     // Automatically create an EIP7702 wallet for the agent via zOS API
@@ -78,7 +78,7 @@ pub async fn list_agents(
     State(state): State<AppState>,
     Query(query): Query<AgentListQuery>,
 ) -> Result<Json<Vec<models::Agent>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let agents = handlers::list_agents(&state.pool, user.id, query.org_id).await?;
     Ok(Json(agents))
 }
@@ -88,7 +88,7 @@ pub async fn get_agent(
     State(state): State<AppState>,
     Path(agent_id): Path<Uuid>,
 ) -> Result<Json<models::Agent>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let mut agent = handlers::get_agent(&state.pool, agent_id).await?;
     // Strip sensitive fields if the caller doesn't own the agent
     if agent.user_id != user.id {
@@ -105,7 +105,7 @@ pub async fn update_agent(
     Path(agent_id): Path<Uuid>,
     Json(input): Json<models::UpdateAgentRequest>,
 ) -> Result<Json<models::Agent>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let agent = handlers::update_agent(&state.pool, agent_id, user.id, input).await?;
     Ok(Json(agent))
 }
@@ -115,7 +115,7 @@ pub async fn delete_agent(
     State(state): State<AppState>,
     Path(agent_id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     handlers::delete_agent(&state.pool, agent_id, user.id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }

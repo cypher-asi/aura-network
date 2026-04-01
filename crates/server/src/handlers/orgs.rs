@@ -13,7 +13,7 @@ pub async fn create_org(
     State(state): State<AppState>,
     Json(input): Json<models::CreateOrgRequest>,
 ) -> Result<Json<models::Org>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let org = handlers::create_org(&state.pool, user.id, &user.display_name, input).await?;
     Ok(Json(org))
 }
@@ -22,7 +22,7 @@ pub async fn list_orgs(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<models::Org>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let orgs = handlers::list_orgs(&state.pool, user.id).await?;
     Ok(Json(orgs))
 }
@@ -32,7 +32,7 @@ pub async fn get_org(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<models::Org>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     org_repo::get_member(&state.pool, org_id, user.id).await?;
     let org = handlers::get_org(&state.pool, org_id).await?;
     Ok(Json(org))
@@ -43,7 +43,7 @@ pub async fn delete_org(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     handlers::delete_org(&state.pool, org_id, user.id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -54,7 +54,7 @@ pub async fn update_org(
     Path(org_id): Path<Uuid>,
     Json(input): Json<models::UpdateOrgRequest>,
 ) -> Result<Json<models::Org>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let org = handlers::update_org(&state.pool, org_id, user.id, input).await?;
     Ok(Json(org))
 }
@@ -64,7 +64,7 @@ pub async fn list_members(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<Vec<models::OrgMember>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let members = handlers::list_members(&state.pool, org_id, user.id).await?;
     Ok(Json(members))
 }
@@ -75,7 +75,7 @@ pub async fn update_member(
     Path((org_id, target_user_id)): Path<(Uuid, Uuid)>,
     Json(input): Json<models::UpdateMemberRequest>,
 ) -> Result<Json<models::OrgMember>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let member =
         handlers::update_member(&state.pool, org_id, user.id, target_user_id, input).await?;
     Ok(Json(member))
@@ -86,7 +86,7 @@ pub async fn remove_member(
     State(state): State<AppState>,
     Path((org_id, target_user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     handlers::remove_member(&state.pool, org_id, user.id, target_user_id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -96,7 +96,7 @@ pub async fn create_invite(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<models::OrgInvite>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let invite = handlers::create_invite(&state.pool, org_id, user.id).await?;
     Ok(Json(invite))
 }
@@ -106,7 +106,7 @@ pub async fn list_invites(
     State(state): State<AppState>,
     Path(org_id): Path<Uuid>,
 ) -> Result<Json<Vec<models::OrgInvite>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let invites = handlers::list_invites(&state.pool, org_id, user.id).await?;
     Ok(Json(invites))
 }
@@ -116,7 +116,7 @@ pub async fn revoke_invite(
     State(state): State<AppState>,
     Path((org_id, invite_id)): Path<(Uuid, Uuid)>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     handlers::revoke_invite(&state.pool, org_id, invite_id, user.id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -127,7 +127,7 @@ pub async fn accept_invite(
     Path(token): Path<String>,
     Json(input): Json<models::AcceptInviteRequest>,
 ) -> Result<Json<models::OrgMember>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let member = handlers::accept_invite(&state.pool, &token, user.id, input).await?;
     Ok(Json(member))
 }
