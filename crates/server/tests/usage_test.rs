@@ -91,11 +91,7 @@ async fn get_stats(pool: sqlx::PgPool) {
     let app = common::spawn_app(pool).await;
     let jwt = common::test_jwt("user-1");
 
-    let res = app
-        .get_authed("/api/stats", &jwt)
-        .send()
-        .await
-        .unwrap();
+    let res = app.get_authed("/api/stats", &jwt).send().await.unwrap();
 
     assert_eq!(res.status(), 200);
 }

@@ -122,10 +122,7 @@ pub fn create_router() -> Router<AppState> {
         )
         .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
-        .route(
-            "/api/orgs/:id/budget",
-            get(handlers::usage::check_budget),
-        )
+        .route("/api/orgs/:id/budget", get(handlers::usage::check_budget))
         // Internal
         .route(
             "/internal/users/:zeroUserId",
@@ -145,7 +142,10 @@ pub fn create_router() -> Router<AppState> {
             "/internal/orgs/:id/usage",
             get(handlers::internal::get_org_usage),
         )
-        .route("/internal/usage/network", get(handlers::internal::get_network_usage))
+        .route(
+            "/internal/usage/network",
+            get(handlers::internal::get_network_usage),
+        )
         .route(
             "/internal/orgs/:id/integrations",
             get(handlers::internal::list_org_integrations),

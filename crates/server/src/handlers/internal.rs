@@ -106,12 +106,9 @@ pub async fn get_org_usage(
     Path(org_id): Path<Uuid>,
     axum::extract::Query(query): axum::extract::Query<aura_network_usage::models::UsageQuery>,
 ) -> Result<Json<aura_network_usage::models::UsageSummary>, AppError> {
-    let usage = aura_network_usage::handlers::get_org_usage(
-        &state.pool,
-        org_id,
-        query.period.as_deref(),
-    )
-    .await?;
+    let usage =
+        aura_network_usage::handlers::get_org_usage(&state.pool, org_id, query.period.as_deref())
+            .await?;
     Ok(Json(usage))
 }
 

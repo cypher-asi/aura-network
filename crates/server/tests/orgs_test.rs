@@ -151,7 +151,11 @@ async fn update_member_role(pool: sqlx::PgPool) {
     let jwt_member = common::test_jwt("member");
 
     // Owner creates org, invites member
-    let orgs_res = app.get_authed("/api/orgs", &jwt_owner).send().await.unwrap();
+    let orgs_res = app
+        .get_authed("/api/orgs", &jwt_owner)
+        .send()
+        .await
+        .unwrap();
     let orgs: Vec<serde_json::Value> = orgs_res.json().await.unwrap();
     let org_id = orgs[0]["id"].as_str().unwrap();
 
@@ -177,10 +181,7 @@ async fn update_member_role(pool: sqlx::PgPool) {
         .await
         .unwrap();
     let members: Vec<serde_json::Value> = members_res.json().await.unwrap();
-    let member_user_id = members
-        .iter()
-        .find(|m| m["role"] == "member")
-        .unwrap()["userId"]
+    let member_user_id = members.iter().find(|m| m["role"] == "member").unwrap()["userId"]
         .as_str()
         .unwrap();
 
@@ -206,7 +207,11 @@ async fn remove_member(pool: sqlx::PgPool) {
     let jwt_owner = common::test_jwt("owner");
     let jwt_member = common::test_jwt("member");
 
-    let orgs_res = app.get_authed("/api/orgs", &jwt_owner).send().await.unwrap();
+    let orgs_res = app
+        .get_authed("/api/orgs", &jwt_owner)
+        .send()
+        .await
+        .unwrap();
     let orgs: Vec<serde_json::Value> = orgs_res.json().await.unwrap();
     let org_id = orgs[0]["id"].as_str().unwrap();
 
@@ -231,10 +236,7 @@ async fn remove_member(pool: sqlx::PgPool) {
         .await
         .unwrap();
     let members: Vec<serde_json::Value> = members_res.json().await.unwrap();
-    let member_user_id = members
-        .iter()
-        .find(|m| m["role"] == "member")
-        .unwrap()["userId"]
+    let member_user_id = members.iter().find(|m| m["role"] == "member").unwrap()["userId"]
         .as_str()
         .unwrap();
 
@@ -337,10 +339,7 @@ async fn revoke_invite(pool: sqlx::PgPool) {
 
     // Revoke it
     let res = app
-        .delete_authed(
-            &format!("/api/orgs/{org_id}/invites/{invite_id}"),
-            &jwt,
-        )
+        .delete_authed(&format!("/api/orgs/{org_id}/invites/{invite_id}"), &jwt)
         .send()
         .await
         .unwrap();

@@ -110,8 +110,14 @@ async fn get_agent_as_non_owner_strips_sensitive_fields(pool: sqlx::PgPool) {
 
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
-    assert!(body["systemPrompt"].is_null(), "system_prompt should be stripped for non-owner");
-    assert!(body["walletAddress"].is_null(), "wallet_address should be stripped for non-owner");
+    assert!(
+        body["systemPrompt"].is_null(),
+        "system_prompt should be stripped for non-owner"
+    );
+    assert!(
+        body["walletAddress"].is_null(),
+        "wallet_address should be stripped for non-owner"
+    );
 }
 
 #[sqlx::test(migrations = "../db/migrations")]

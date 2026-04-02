@@ -53,7 +53,7 @@ pub async fn leaderboard(
     State(state): State<AppState>,
     Query(query): Query<LeaderboardQuery>,
 ) -> Result<Json<Vec<models::LeaderboardEntry>>, AppError> {
-    let limit = query.limit.unwrap_or(50).min(100).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let entries =
         handlers::get_leaderboard(&state.pool, query.period.as_deref(), query.org_id, limit)
             .await?;

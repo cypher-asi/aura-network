@@ -118,12 +118,11 @@ pub async fn delete(pool: &PgPool, id: Uuid) -> Result<(), AppError> {
 
 /// Delete scoped by org_id to prevent cross-org manipulation.
 pub async fn delete_scoped(pool: &PgPool, id: Uuid, org_id: Uuid) -> Result<(), AppError> {
-    let result =
-        sqlx::query("DELETE FROM org_integrations WHERE id = $1 AND org_id = $2")
-            .bind(id)
-            .bind(org_id)
-            .execute(pool)
-            .await?;
+    let result = sqlx::query("DELETE FROM org_integrations WHERE id = $1 AND org_id = $2")
+        .bind(id)
+        .bind(org_id)
+        .execute(pool)
+        .await?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Integration not found".into()));

@@ -63,12 +63,7 @@ pub async fn resolve_user(
             if let Ok(updated) = repo::update(&state.pool, user.id, &update).await {
                 user = updated;
                 // Also update the profile display_name to match
-                let _ = repo::update_profile_display_name(
-                    &state.pool,
-                    user.id,
-                    &name,
-                )
-                .await;
+                let _ = repo::update_profile_display_name(&state.pool, user.id, &name).await;
             }
         }
     }

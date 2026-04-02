@@ -80,7 +80,7 @@ async fn handle_ws(
                                 }
                             }
                         }
-                        if socket.send(Message::Text(msg.into())).await.is_err() {
+                        if socket.send(Message::Text(msg)).await.is_err() {
                             break;
                         }
                     }
@@ -98,7 +98,7 @@ async fn handle_ws(
                 }
             }
             _ = ping_interval.tick() => {
-                if socket.send(Message::Ping(vec![].into())).await.is_err() {
+                if socket.send(Message::Ping(vec![])).await.is_err() {
                     break;
                 }
             }

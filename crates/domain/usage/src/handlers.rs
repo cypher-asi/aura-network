@@ -57,8 +57,6 @@ pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, 
     repo::get_platform_stats(pool).await
 }
 
-pub async fn get_realtime_platform_stats(
-    pool: &PgPool,
-) -> Result<RealTimePlatformStats, AppError> {
+pub async fn get_realtime_platform_stats(pool: &PgPool) -> Result<RealTimePlatformStats, AppError> {
     repo::get_realtime_platform_stats(pool).await
 }

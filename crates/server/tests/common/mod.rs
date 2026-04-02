@@ -1,3 +1,5 @@
+// Shared test helpers — not all items are used by every test file.
+#![allow(dead_code)]
 use aura_network_auth::{InternalToken, TokenValidator};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::Client;
@@ -12,12 +14,14 @@ const TEST_COOKIE_SECRET: &str = "test-cookie-secret";
 const TEST_INTERNAL_TOKEN: &str = "test-internal-token";
 const SELF_SIGNED_KID: &str = "jFNXMnFjGrSoDafnLQBohoCNalWcFcTjnKEbkRzWFBHyYJFikdLMHP";
 
+#[allow(dead_code)]
 pub struct TestApp {
     pub addr: String,
     pub client: Client,
     pub internal_token: String,
 }
 
+#[allow(dead_code)]
 impl TestApp {
     pub fn url(&self, path: &str) -> String {
         format!("{}{}", self.addr, path)

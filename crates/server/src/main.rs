@@ -4,8 +4,8 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use aura_network_auth::{InternalToken, TokenValidator};
-use aura_network_server::state::AppState;
 use aura_network_server::router;
+use aura_network_server::state::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -41,9 +41,7 @@ async fn main() {
     let aura_storage_url = std::env::var("AURA_STORAGE_URL")
         .ok()
         .filter(|s| !s.is_empty());
-    let zos_api_url = std::env::var("ZOS_API_URL")
-        .ok()
-        .filter(|s| !s.is_empty());
+    let zos_api_url = std::env::var("ZOS_API_URL").ok().filter(|s| !s.is_empty());
     let zos_api_internal_token = std::env::var("ZOS_API_INTERNAL_TOKEN")
         .ok()
         .filter(|s| !s.is_empty());

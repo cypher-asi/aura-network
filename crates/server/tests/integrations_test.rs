@@ -86,10 +86,7 @@ async fn update_integration(pool: sqlx::PgPool) {
     let id = integration["id"].as_str().unwrap();
 
     let res = app
-        .put_authed(
-            &format!("/api/orgs/{org_id}/integrations/{id}"),
-            &jwt,
-        )
+        .put_authed(&format!("/api/orgs/{org_id}/integrations/{id}"), &jwt)
         .body(json!({ "config": { "owner": "new" } }).to_string())
         .send()
         .await
@@ -122,10 +119,7 @@ async fn delete_integration(pool: sqlx::PgPool) {
     let id = integration["id"].as_str().unwrap();
 
     let res = app
-        .delete_authed(
-            &format!("/api/orgs/{org_id}/integrations/{id}"),
-            &jwt,
-        )
+        .delete_authed(&format!("/api/orgs/{org_id}/integrations/{id}"), &jwt)
         .send()
         .await
         .unwrap();

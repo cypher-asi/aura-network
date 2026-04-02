@@ -15,7 +15,7 @@ async fn follow_and_list_following(pool: sqlx::PgPool) {
     let jwt_a = common::test_jwt("user-a");
     let jwt_b = common::test_jwt("user-b");
 
-    let profile_a = get_profile_id(&app, &jwt_a).await;
+    let _profile_a = get_profile_id(&app, &jwt_a).await;
     let profile_b = get_profile_id(&app, &jwt_b).await;
 
     // A follows B

@@ -213,9 +213,7 @@ pub async fn get_platform_stats(pool: &PgPool) -> Result<Option<PlatformStats>, 
     Ok(stats)
 }
 
-pub async fn get_realtime_platform_stats(
-    pool: &PgPool,
-) -> Result<RealTimePlatformStats, AppError> {
+pub async fn get_realtime_platform_stats(pool: &PgPool) -> Result<RealTimePlatformStats, AppError> {
     let stats = sqlx::query_as::<_, RealTimePlatformStats>(
         r#"
         SELECT
