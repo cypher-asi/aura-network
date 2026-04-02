@@ -1,14 +1,11 @@
-mod handlers;
-mod router;
-mod state;
-
 use tower_http::cors::CorsLayer;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use aura_network_auth::{InternalToken, TokenValidator};
-use state::AppState;
+use aura_network_server::state::AppState;
+use aura_network_server::router;
 
 #[tokio::main]
 async fn main() {
