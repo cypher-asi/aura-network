@@ -145,6 +145,122 @@ async fn list_members(pool: sqlx::PgPool) {
 }
 
 #[sqlx::test(migrations = "../db/migrations")]
+async fn update_member_role(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt_owner = common::test_jwt("owner");
+    let jwt_member = common::test_jwt("member");
+
+    // Owner creates org, invites member
+    let orgs_res = app.get_authed("/api/orgs", &jwt_owner).send().await.unwrap();
+    let orgs: Vec<serde_json::Value> = orgs_res.json().await.unwrap();
+    let org_id = orgs[0]["id"].as_str().unwrap();
+
+    let invite_res = app
+        .post_authed(&format!("/api/orgs/{org_id}/invites"), &jwt_owner)
+        .send()
+        .await
+        .unwrap();
+    let invite: serde_json::Value = invite_res.json().await.unwrap();
+    let token = invite["token"].as_str().unwrap();
+
+    // Member accepts
+    app.post_authed(&format!("/api/invites/{token}/accept"), &jwt_member)
+        .body(json!({ "displayName": "Member" }).to_string())
+        .send()
+        .await
+        .unwrap();
+
+    // Get member's user ID
+    let members_res = app
+        .get_authed(&format!("/api/orgs/{org_id}/members"), &jwt_owner)
+        .send()
+        .await
+        .unwrap();
+    let members: Vec<serde_json::Value> = members_res.json().await.unwrap();
+    let member_user_id = members
+        .iter()
+        .find(|m| m["role"] == "member")
+        .unwrap()["userId"]
+        .as_str()
+        .unwrap();
+
+    // Update member role to admin
+    let res = app
+        .put_authed(
+            &format!("/api/orgs/{org_id}/members/{member_user_id}"),
+            &jwt_owner,
+        )
+        .body(json!({ "role": "admin" }).to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["role"], "admin");
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
+async fn remove_member(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt_owner = common::test_jwt("owner");
+    let jwt_member = common::test_jwt("member");
+
+    let orgs_res = app.get_authed("/api/orgs", &jwt_owner).send().await.unwrap();
+    let orgs: Vec<serde_json::Value> = orgs_res.json().await.unwrap();
+    let org_id = orgs[0]["id"].as_str().unwrap();
+
+    // Invite and accept
+    let invite_res = app
+        .post_authed(&format!("/api/orgs/{org_id}/invites"), &jwt_owner)
+        .send()
+        .await
+        .unwrap();
+    let invite: serde_json::Value = invite_res.json().await.unwrap();
+    let token = invite["token"].as_str().unwrap();
+
+    app.post_authed(&format!("/api/invites/{token}/accept"), &jwt_member)
+        .body(json!({ "displayName": "Member" }).to_string())
+        .send()
+        .await
+        .unwrap();
+
+    let members_res = app
+        .get_authed(&format!("/api/orgs/{org_id}/members"), &jwt_owner)
+        .send()
+        .await
+        .unwrap();
+    let members: Vec<serde_json::Value> = members_res.json().await.unwrap();
+    let member_user_id = members
+        .iter()
+        .find(|m| m["role"] == "member")
+        .unwrap()["userId"]
+        .as_str()
+        .unwrap();
+
+    // Remove member
+    let res = app
+        .delete_authed(
+            &format!("/api/orgs/{org_id}/members/{member_user_id}"),
+            &jwt_owner,
+        )
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 204);
+
+    // Verify only owner remains
+    let final_members = app
+        .get_authed(&format!("/api/orgs/{org_id}/members"), &jwt_owner)
+        .send()
+        .await
+        .unwrap();
+    let members: Vec<serde_json::Value> = final_members.json().await.unwrap();
+    assert_eq!(members.len(), 1);
+    assert_eq!(members[0]["role"], "owner");
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
 async fn invite_flow_create_list_accept(pool: sqlx::PgPool) {
     let app = common::spawn_app(pool).await;
     let jwt_owner = common::test_jwt("owner-user");

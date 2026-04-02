@@ -28,6 +28,35 @@ async fn get_user_by_zero_id(pool: sqlx::PgPool) {
 }
 
 #[sqlx::test(migrations = "../db/migrations")]
+async fn internal_post_activity(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt = common::test_jwt("user-1");
+
+    // Create user to get profile ID
+    let me_res = app.get_authed("/api/users/me", &jwt).send().await.unwrap();
+    let me: serde_json::Value = me_res.json().await.unwrap();
+    let profile_id = me["profileId"].as_str().unwrap();
+
+    let res = app
+        .post_internal("/internal/posts")
+        .body(
+            json!({
+                "profileId": profile_id,
+                "eventType": "commit",
+                "title": "Internal post test"
+            })
+            .to_string(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["title"], "Internal post test");
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
 async fn internal_record_usage(pool: sqlx::PgPool) {
     let app = common::spawn_app(pool).await;
     let jwt = common::test_jwt("user-1");
