@@ -78,7 +78,8 @@ pub async fn delete_project(
             "{}/internal/projects/{}/agents/count",
             storage_url, project_id
         );
-        let response = reqwest::Client::new()
+        let response = state
+            .http_client
             .get(&url)
             .header("X-Internal-Token", &state.internal_token.0)
             .send()
@@ -103,6 +104,49 @@ pub async fn delete_project(
         }
     }
 
+    // Nullify project references before deleting (safety net; migration 0030
+    // adds ON DELETE SET NULL for activity_events, but token_usage_daily has
+    // no FK constraint so this UPDATE is the only cleanup path for it).
+    sqlx::query("UPDATE activity_events SET project_id = NULL WHERE project_id = $1")
+        .bind(project_id)
+        .execute(&state.pool)
+        .await?;
+    sqlx::query("UPDATE token_usage_daily SET project_id = NULL WHERE project_id = $1")
+        .bind(project_id)
+        .execute(&state.pool)
+        .await?;
+
     handlers::delete_project(&state.pool, project_id).await?;
+
+    // Cascade cleanup in aura-storage (best-effort — project is already deleted)
+    if let Some(ref storage_url) = state.aura_storage_url {
+        let url = format!("{}/internal/projects/{}", storage_url, project_id);
+        match state
+            .http_client
+            .delete(&url)
+            .header("X-Internal-Token", &state.internal_token.0)
+            .send()
+            .await
+        {
+            Ok(resp) if resp.status().is_success() => {
+                tracing::info!(project_id = %project_id, "aura-storage project data cleaned up");
+            }
+            Ok(resp) => {
+                tracing::warn!(
+                    project_id = %project_id,
+                    status = %resp.status(),
+                    "aura-storage project cleanup returned non-success status"
+                );
+            }
+            Err(e) => {
+                tracing::warn!(
+                    project_id = %project_id,
+                    error = %e,
+                    "failed to clean up project data in aura-storage"
+                );
+            }
+        }
+    }
+
     Ok(StatusCode::NO_CONTENT)
 }
