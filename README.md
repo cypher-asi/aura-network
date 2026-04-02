@@ -106,12 +106,26 @@ Same API as desktop — all endpoints are API-first. Authenticate via zOS, then 
 
 ---
 
+## Testing
+
+Requires a local PostgreSQL instance.
+
+```
+DATABASE_URL="postgres://user@localhost:5432/postgres" cargo test --all
+```
+
+59 end-to-end integration tests cover all API and internal endpoints. Tests spin up a real Axum server per test with an isolated database (via `#[sqlx::test]`).
+
+CI runs automatically on push/PR via GitHub Actions (fmt, clippy, tests with Postgres 16, cargo-deny, security audit).
+
+---
+
 ## Architecture
 
 | Crate | Description |
 | --- | --- |
 | **aura-network-core** | Shared types, error handling, pagination |
-| **aura-network-db** | PostgreSQL connection pool and migrations (20 migrations) |
+| **aura-network-db** | PostgreSQL connection pool and migrations (30 migrations) |
 | **aura-network-auth** | JWT validation (Auth0 JWKS + HS256) and auth extractors |
 | **aura-network-server** | Axum HTTP server, router, handlers, WebSocket |
 | **aura-network-users** | User and profile management |
