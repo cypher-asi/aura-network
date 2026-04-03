@@ -123,6 +123,15 @@ pub fn create_router() -> Router<AppState> {
         .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
         .route("/api/orgs/:id/budget", get(handlers::usage::check_budget))
+        // Access Codes
+        .route(
+            "/api/access-codes/redeem",
+            post(handlers::access_codes::redeem_code),
+        )
+        .route(
+            "/api/access-codes",
+            get(handlers::access_codes::list_my_codes),
+        )
         // Internal
         .route(
             "/internal/users/:zeroUserId",

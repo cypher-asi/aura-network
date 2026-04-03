@@ -14,6 +14,8 @@ pub struct User {
     pub location: Option<String>,
     pub website: Option<String>,
     pub last_login_at: Option<DateTime<Utc>>,
+    pub is_access_granted: bool,
+    pub access_granted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -48,6 +50,24 @@ pub struct UpdateUserRequest {
     pub profile_image: Option<String>,
     pub location: Option<String>,
     pub website: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct AppAccessCode {
+    pub id: Uuid,
+    pub code: String,
+    pub created_by: Uuid,
+    pub redeemed_by: Option<Uuid>,
+    pub status: String,
+    pub redeemed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RedeemAccessCodeRequest {
+    pub code: String,
 }
 
 #[derive(Debug, Deserialize)]
