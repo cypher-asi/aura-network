@@ -169,7 +169,10 @@ pub async fn grant_access(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> 
     Ok(())
 }
 
-pub async fn generate_access_codes(pool: &PgPool, user_id: Uuid) -> Result<Vec<AppAccessCode>, AppError> {
+pub async fn generate_access_codes(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Vec<AppAccessCode>, AppError> {
     let existing: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM app_access_codes WHERE created_by = $1")
             .bind(user_id)
@@ -191,7 +194,10 @@ pub async fn generate_access_codes(pool: &PgPool, user_id: Uuid) -> Result<Vec<A
     list_access_codes(pool, user_id).await
 }
 
-pub async fn list_access_codes(pool: &PgPool, user_id: Uuid) -> Result<Vec<AppAccessCode>, AppError> {
+pub async fn list_access_codes(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Vec<AppAccessCode>, AppError> {
     let codes = sqlx::query_as::<_, AppAccessCode>(
         "SELECT * FROM app_access_codes WHERE created_by = $1 ORDER BY created_at",
     )
@@ -201,7 +207,11 @@ pub async fn list_access_codes(pool: &PgPool, user_id: Uuid) -> Result<Vec<AppAc
     Ok(codes)
 }
 
-pub async fn redeem_access_code(pool: &PgPool, code: &str, user_id: Uuid) -> Result<AppAccessCode, AppError> {
+pub async fn redeem_access_code(
+    pool: &PgPool,
+    code: &str,
+    user_id: Uuid,
+) -> Result<AppAccessCode, AppError> {
     // Check if user already has access
     let user = get_by_id(pool, user_id).await?;
     if user.is_access_granted {
@@ -209,22 +219,25 @@ pub async fn redeem_access_code(pool: &PgPool, code: &str, user_id: Uuid) -> Res
     }
 
     // Find the code
-    let access_code = sqlx::query_as::<_, AppAccessCode>(
-        "SELECT * FROM app_access_codes WHERE code = $1",
-    )
-    .bind(code)
-    .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::BadRequest("Invalid access code".into()))?;
+    let access_code =
+        sqlx::query_as::<_, AppAccessCode>("SELECT * FROM app_access_codes WHERE code = $1")
+            .bind(code)
+            .fetch_optional(pool)
+            .await?
+            .ok_or_else(|| AppError::BadRequest("Invalid access code".into()))?;
 
     // Check it hasn't been redeemed
     if access_code.status == "redeemed" {
-        return Err(AppError::BadRequest("This code has already been used".into()));
+        return Err(AppError::BadRequest(
+            "This code has already been used".into(),
+        ));
     }
 
     // Prevent self-redemption
     if access_code.created_by == user_id {
-        return Err(AppError::BadRequest("You cannot redeem your own access code".into()));
+        return Err(AppError::BadRequest(
+            "You cannot redeem your own access code".into(),
+        ));
     }
 
     // Redeem the code

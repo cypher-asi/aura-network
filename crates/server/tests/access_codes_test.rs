@@ -10,21 +10,6 @@ async fn setup_user(app: &common::TestApp, user_id: &str) -> String {
     me["id"].as_str().unwrap().to_string()
 }
 
-/// Helper: grant access to a user by directly hitting the DB-level flow
-/// (create user, then generate codes which requires access).
-/// For testing, we use the redeem flow from another user's code.
-async fn grant_access_and_get_codes(
-    app: &common::TestApp,
-    granter_jwt: &str,
-) -> Vec<serde_json::Value> {
-    let res = app
-        .get_authed("/api/access-codes", granter_jwt)
-        .send()
-        .await
-        .unwrap();
-    res.json().await.unwrap()
-}
-
 #[sqlx::test(migrations = "../db/migrations")]
 async fn list_access_codes_empty_for_new_user(pool: sqlx::PgPool) {
     let app = common::spawn_app(pool).await;
