@@ -137,6 +137,10 @@ pub fn create_router() -> Router<AppState> {
             "/internal/users/:zeroUserId",
             get(handlers::internal::get_user_by_zero_id),
         )
+        .route(
+            "/api/access-codes/grant",
+            post(handlers::access_codes::grant_access),
+        )
         .route("/internal/posts", post(handlers::internal::post_activity))
         .route("/internal/usage", post(handlers::internal::record_usage))
         .route(
