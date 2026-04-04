@@ -17,11 +17,19 @@ pub async fn redeem_code(
     Ok(Json(code))
 }
 
-pub async fn list_my_codes(
+/// Returns the user's single access code. Auto-generates one if the user
+/// has access but no code exists yet.
+pub async fn get_my_code(
     auth: AuthUser,
     State(state): State<AppState>,
-) -> Result<Json<Vec<models::AppAccessCode>>, AppError> {
+) -> Result<Json<Option<models::AppAccessCode>>, AppError> {
     let user = super::resolve_user(&state, &auth).await?;
-    let codes = repo::list_access_codes(&state.pool, user.id).await?;
-    Ok(Json(codes))
+
+    if user.is_access_granted {
+        let code = repo::ensure_access_code(&state.pool, user.id).await?;
+        return Ok(Json(Some(code)));
+    }
+
+    let code = repo::get_access_code(&state.pool, user.id).await?;
+    Ok(Json(code))
 }

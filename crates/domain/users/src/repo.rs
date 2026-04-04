@@ -3,7 +3,9 @@ use uuid::Uuid;
 
 use aura_network_core::AppError;
 
-use crate::models::{AppAccessCode, CreateUserFromToken, Profile, UpdateUserRequest, User};
+use crate::models::{
+    AccessCodeRedemption, AppAccessCode, CreateUserFromToken, Profile, UpdateUserRequest, User,
+};
 
 pub async fn upsert_from_token(
     pool: &PgPool,
@@ -148,9 +150,7 @@ pub async fn get_profile_by_agent_id(pool: &PgPool, agent_id: Uuid) -> Result<Pr
 // App access codes
 // ---------------------------------------------------------------------------
 
-const ACCESS_CODES_PER_USER: i64 = 5;
-
-fn generate_access_code() -> String {
+fn generate_code_string() -> String {
     use rand::Rng;
     const CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let mut rng = rand::thread_rng();
@@ -169,42 +169,54 @@ pub async fn grant_access(pool: &PgPool, user_id: Uuid) -> Result<(), AppError> 
     Ok(())
 }
 
-pub async fn generate_access_codes(
-    pool: &PgPool,
-    user_id: Uuid,
-) -> Result<Vec<AppAccessCode>, AppError> {
-    let existing: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM app_access_codes WHERE created_by = $1")
+/// Ensure the user has exactly one access code. Creates one if missing.
+pub async fn ensure_access_code(pool: &PgPool, user_id: Uuid) -> Result<AppAccessCode, AppError> {
+    if let Some(existing) =
+        sqlx::query_as::<_, AppAccessCode>("SELECT * FROM app_access_codes WHERE created_by = $1")
             .bind(user_id)
-            .fetch_one(pool)
-            .await?;
-
-    let to_create = (ACCESS_CODES_PER_USER - existing).max(0);
-    for _ in 0..to_create {
-        let code = generate_access_code();
-        sqlx::query(
-            "INSERT INTO app_access_codes (code, created_by) VALUES ($1, $2) ON CONFLICT (code) DO NOTHING",
-        )
-        .bind(&code)
-        .bind(user_id)
-        .execute(pool)
-        .await?;
+            .fetch_optional(pool)
+            .await?
+    {
+        return Ok(existing);
     }
 
-    list_access_codes(pool, user_id).await
+    let code = generate_code_string();
+    let created = sqlx::query_as::<_, AppAccessCode>(
+        "INSERT INTO app_access_codes (code, created_by) VALUES ($1, $2) RETURNING *",
+    )
+    .bind(&code)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(created)
 }
 
-pub async fn list_access_codes(
+/// Get the user's access code if it exists.
+pub async fn get_access_code(
     pool: &PgPool,
     user_id: Uuid,
-) -> Result<Vec<AppAccessCode>, AppError> {
-    let codes = sqlx::query_as::<_, AppAccessCode>(
-        "SELECT * FROM app_access_codes WHERE created_by = $1 ORDER BY created_at",
+) -> Result<Option<AppAccessCode>, AppError> {
+    let code =
+        sqlx::query_as::<_, AppAccessCode>("SELECT * FROM app_access_codes WHERE created_by = $1")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+    Ok(code)
+}
+
+/// Get all redemptions for a code.
+pub async fn get_code_redemptions(
+    pool: &PgPool,
+    code_id: Uuid,
+) -> Result<Vec<AccessCodeRedemption>, AppError> {
+    let redemptions = sqlx::query_as::<_, AccessCodeRedemption>(
+        "SELECT * FROM access_code_redemptions WHERE code_id = $1 ORDER BY redeemed_at",
     )
-    .bind(user_id)
+    .bind(code_id)
     .fetch_all(pool)
     .await?;
-    Ok(codes)
+    Ok(redemptions)
 }
 
 pub async fn redeem_access_code(
@@ -226,10 +238,10 @@ pub async fn redeem_access_code(
             .await?
             .ok_or_else(|| AppError::BadRequest("Invalid access code".into()))?;
 
-    // Check it hasn't been redeemed
-    if access_code.status == "redeemed" {
+    // Check uses remaining
+    if access_code.use_count >= access_code.max_uses {
         return Err(AppError::BadRequest(
-            "This code has already been used".into(),
+            "This code has reached its maximum uses".into(),
         ));
     }
 
@@ -240,26 +252,32 @@ pub async fn redeem_access_code(
         ));
     }
 
-    // Redeem the code
-    let redeemed = sqlx::query_as::<_, AppAccessCode>(
+    // Increment use count
+    let updated = sqlx::query_as::<_, AppAccessCode>(
         r#"
         UPDATE app_access_codes
-        SET status = 'redeemed', redeemed_by = $1, redeemed_at = NOW()
-        WHERE id = $2 AND status = 'available'
+        SET use_count = use_count + 1
+        WHERE id = $1 AND use_count < max_uses
         RETURNING *
         "#,
     )
-    .bind(user_id)
     .bind(access_code.id)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| AppError::BadRequest("This code has already been used".into()))?;
+    .ok_or_else(|| AppError::BadRequest("This code has reached its maximum uses".into()))?;
+
+    // Record the redemption
+    sqlx::query("INSERT INTO access_code_redemptions (code_id, redeemed_by) VALUES ($1, $2)")
+        .bind(access_code.id)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
 
     // Grant access to the redeeming user
     grant_access(pool, user_id).await?;
 
-    // Generate codes for the newly granted user
-    generate_access_codes(pool, user_id).await?;
+    // Generate a code for the newly granted user
+    ensure_access_code(pool, user_id).await?;
 
-    Ok(redeemed)
+    Ok(updated)
 }

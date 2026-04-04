@@ -130,7 +130,7 @@ pub fn create_router() -> Router<AppState> {
         )
         .route(
             "/api/access-codes",
-            get(handlers::access_codes::list_my_codes),
+            get(handlers::access_codes::get_my_code),
         )
         // Internal
         .route(

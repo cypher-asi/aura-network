@@ -58,10 +58,18 @@ pub struct AppAccessCode {
     pub id: Uuid,
     pub code: String,
     pub created_by: Uuid,
-    pub redeemed_by: Option<Uuid>,
-    pub status: String,
-    pub redeemed_at: Option<DateTime<Utc>>,
+    pub max_uses: i32,
+    pub use_count: i32,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessCodeRedemption {
+    pub id: Uuid,
+    pub code_id: Uuid,
+    pub redeemed_by: Uuid,
+    pub redeemed_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
