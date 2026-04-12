@@ -19,6 +19,8 @@ pub struct ActivityEvent {
     pub push_id: Option<Uuid>,
     pub commit_ids: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
+    #[serde(default)]
+    pub comment_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]

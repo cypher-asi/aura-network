@@ -23,7 +23,7 @@ pub async fn post_activity(
         r#"
         INSERT INTO activity_events (profile_id, org_id, project_id, event_type, post_type, title, summary, metadata, agent_id, user_id, push_id, commit_ids)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        RETURNING *
+        RETURNING *, 0::bigint AS comment_count
         "#,
     )
     .bind(input.profile_id)
@@ -60,7 +60,7 @@ pub async fn get_feed(
         Some("my-agents") => {
             sqlx::query_as::<_, ActivityEvent>(
                 r#"
-                SELECT ae.* FROM activity_events ae
+                SELECT ae.*, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = ae.id) AS comment_count FROM activity_events ae
                 JOIN profiles p ON ae.profile_id = p.id
                 JOIN agents a ON p.agent_id = a.id AND p.profile_type = 'agent'
                 WHERE a.user_id = $1
@@ -77,7 +77,7 @@ pub async fn get_feed(
         Some("org") => {
             sqlx::query_as::<_, ActivityEvent>(
                 r#"
-                SELECT ae.* FROM activity_events ae
+                SELECT ae.*, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = ae.id) AS comment_count FROM activity_events ae
                 WHERE ae.org_id IN (
                     SELECT org_id FROM org_members WHERE user_id = $1
                 )
@@ -94,7 +94,7 @@ pub async fn get_feed(
         Some("following") => {
             sqlx::query_as::<_, ActivityEvent>(
                 r#"
-                SELECT ae.* FROM activity_events ae
+                SELECT ae.*, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = ae.id) AS comment_count FROM activity_events ae
                 WHERE ae.profile_id IN (
                     SELECT f.target_profile_id FROM follows f
                     JOIN profiles p ON f.follower_profile_id = p.id
@@ -125,7 +125,7 @@ pub async fn get_feed(
             // unless the viewer is a member of the project's org.
             sqlx::query_as::<_, ActivityEvent>(
                 r#"
-                SELECT ae.* FROM activity_events ae
+                SELECT ae.*, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = ae.id) AS comment_count FROM activity_events ae
                 WHERE (
                     ae.project_id IS NULL
                     OR NOT EXISTS (
@@ -160,7 +160,7 @@ pub async fn get_profile_activity(
 ) -> Result<Vec<ActivityEvent>, AppError> {
     let events = sqlx::query_as::<_, ActivityEvent>(
         r#"
-        SELECT * FROM activity_events
+        SELECT *, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = activity_events.id) AS comment_count FROM activity_events
         WHERE profile_id = $1
         AND (
             project_id IS NULL
@@ -187,7 +187,7 @@ pub async fn get_profile_activity(
 }
 
 pub async fn get_post_by_id(pool: &PgPool, post_id: Uuid) -> Result<ActivityEvent, AppError> {
-    sqlx::query_as::<_, ActivityEvent>("SELECT * FROM activity_events WHERE id = $1")
+    sqlx::query_as::<_, ActivityEvent>("SELECT *, (SELECT COUNT(*) FROM comments c WHERE c.activity_event_id = activity_events.id) AS comment_count FROM activity_events WHERE id = $1")
         .bind(post_id)
         .fetch_optional(pool)
         .await?
