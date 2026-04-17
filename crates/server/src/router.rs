@@ -82,7 +82,19 @@ pub fn create_router() -> Router<AppState> {
         // Feed
         .route("/api/feed", get(handlers::feed::get_feed))
         .route("/api/posts", post(handlers::feed::post_activity))
-        .route("/api/posts/:id", get(handlers::feed::get_post))
+        .route(
+            "/api/posts/:id",
+            get(handlers::feed::get_post).patch(handlers::feed::patch_post),
+        )
+        // Votes
+        .route(
+            "/api/posts/:id/votes",
+            post(handlers::feed::cast_vote),
+        )
+        .route(
+            "/api/posts/:id/votes/summary",
+            get(handlers::feed::get_vote_summary),
+        )
         // Comments
         .route(
             "/api/posts/:eventId/comments",

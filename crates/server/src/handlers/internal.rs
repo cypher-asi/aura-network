@@ -39,7 +39,7 @@ pub async fn post_activity(
             if let Ok(profile) =
                 aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await
             {
-                input.profile_id = profile.id;
+                input.profile_id = Some(profile.id);
             }
         }
     }

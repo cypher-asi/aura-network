@@ -20,7 +20,51 @@ pub struct ActivityEvent {
     pub commit_ids: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     #[serde(default)]
+    #[sqlx(default)]
     pub comment_count: i64,
+    // Vote aggregates. Populated for feedback items via join; always zero for
+    // non-feedback event types so older clients that don't care can ignore
+    // them.
+    #[serde(default)]
+    #[sqlx(default)]
+    pub upvotes: i64,
+    #[serde(default)]
+    #[sqlx(default)]
+    pub downvotes: i64,
+    #[serde(default)]
+    #[sqlx(default)]
+    pub vote_score: i64,
+    /// Current viewer's vote on this item: "up", "down", or "none".
+    #[sqlx(default)]
+    pub viewer_vote: String,
+}
+
+/// Summary of vote aggregates for a single feedback post from the current
+/// viewer's perspective. Returned by vote mutations and the summary endpoint.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoteSummary {
+    pub upvotes: i64,
+    pub downvotes: i64,
+    pub score: i64,
+    pub viewer_vote: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CastVoteRequest {
+    /// "up", "down", or "none". `none` clears any existing vote for the
+    /// current viewer.
+    pub vote: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PatchPostRequest {
+    /// Shallow-merged into the existing `metadata` JSON object. Keys with a
+    /// JSON `null` value are removed. Provided to support feedback status
+    /// updates without introducing event-specific mutation endpoints.
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -37,7 +81,12 @@ pub struct Comment {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateActivityEventRequest {
-    pub profile_id: Uuid,
+    /// Optional: when the client omits this, the HTTP handler resolves the
+    /// viewer's profile from their JWT. Lets thin proxies like aura-os-server
+    /// post on behalf of a user without threading the profile id through
+    /// their own session state.
+    #[serde(default)]
+    pub profile_id: Option<Uuid>,
     pub org_id: Option<Uuid>,
     pub project_id: Option<Uuid>,
     pub event_type: String,
@@ -61,13 +110,14 @@ pub struct CreateCommentRequest {
 #[serde(rename_all = "camelCase")]
 pub struct FeedQuery {
     pub filter: Option<String>,
+    pub sort: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
 
 impl FeedQuery {
     pub fn limit(&self) -> i64 {
-        self.limit.unwrap_or(50).clamp(1, 100)
+        self.limit.unwrap_or(50).min(100).max(1)
     }
 
     pub fn offset(&self) -> i64 {
@@ -84,6 +134,7 @@ const VALID_EVENT_TYPES: &[&str] = &[
     "agent_created",
     "post",
     "push",
+    "feedback",
 ];
 
 pub fn validate_event_type(event_type: &str) -> Result<(), aura_network_core::AppError> {
