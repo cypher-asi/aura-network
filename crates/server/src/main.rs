@@ -46,9 +46,28 @@ async fn main() {
         .ok()
         .filter(|s| !s.is_empty());
 
+    // Dev-only: skip JWT signature verification when the local server isn't
+    // configured with a real zero cookie secret. Loud warning at startup so
+    // this can never sneak into a prod deploy unnoticed.
+    let dev_trust_tokens = std::env::var("AURA_NETWORK_DEV_TRUST_TOKENS")
+        .ok()
+        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
+        .unwrap_or(false);
+    if dev_trust_tokens {
+        tracing::warn!(
+            "AURA_NETWORK_DEV_TRUST_TOKENS=1 — JWT signatures are NOT being \
+             verified. Do not enable this in production."
+        );
+    }
+
     let state = AppState {
         pool,
-        validator: TokenValidator::new(auth0_domain, auth0_audience, cookie_secret),
+        validator: TokenValidator::with_dev_trust(
+            auth0_domain,
+            auth0_audience,
+            cookie_secret,
+            dev_trust_tokens,
+        ),
         internal_token: InternalToken(internal_token),
         events_tx,
         http_client: reqwest::Client::new(),

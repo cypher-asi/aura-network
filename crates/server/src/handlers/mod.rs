@@ -23,6 +23,10 @@ pub async fn health() -> Json<serde_json::Value> {
     }))
 }
 
+pub async fn hello() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "message": "Hello, world!" }))
+}
+
 /// Resolves the authenticated user's internal record, creating user + profile + default org on first login.
 /// Always calls upsert to guarantee user and profile exist (idempotent).
 /// Ensures a default org exists for every user (personal home org).
