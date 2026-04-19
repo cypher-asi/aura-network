@@ -186,3 +186,23 @@ pub async fn patch_post(
     let event = handlers::patch_post_metadata(&state.pool, post_id, viewer, &metadata).await?;
     Ok(Json(event))
 }
+
+/// Public, unauthenticated listing of `event_type = 'feedback'` posts. Feeds
+/// the marketing-site roadmap page. Deliberately exposes only already-public
+/// fields (title, body, vote aggregates, public profile display name) and
+/// never surfaces viewer state.
+pub async fn list_public_feedback(
+    State(state): State<AppState>,
+    Query(query): Query<models::PublicFeedbackQuery>,
+) -> Result<Json<Vec<models::PublicFeedbackEntry>>, AppError> {
+    let entries = handlers::list_public_feedback(
+        &state.pool,
+        query.product(),
+        query.sort.as_deref(),
+        query.category.as_deref(),
+        query.status.as_deref(),
+        query.limit(),
+    )
+    .await?;
+    Ok(Json(entries))
+}

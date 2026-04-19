@@ -4,7 +4,8 @@ use uuid::Uuid;
 use aura_network_core::AppError;
 
 use crate::models::{
-    ActivityEvent, Comment, CreateActivityEventRequest, CreateCommentRequest, VoteSummary,
+    ActivityEvent, Comment, CreateActivityEventRequest, CreateCommentRequest, PublicFeedbackEntry,
+    VoteSummary,
 };
 
 /// Columns we always SELECT from `activity_events`, plus the computed vote
@@ -469,4 +470,125 @@ pub async fn patch_metadata(
     .await?;
 
     get_post_by_id(pool, post_id, viewer_profile_id).await
+}
+
+/// Matches a UUID-shaped display_name so we can strip placeholders (users
+/// whose real name hasn't been fetched yet from zOS). Kept in sync with the
+/// same check that used to live in `aura-web/src/server/feedback.ts`.
+const UUID_RE: &str = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+
+fn looks_like_uuid_display_name(value: &str) -> bool {
+    // Hand-rolled check (no regex dep): 36 chars, dashes in the right spots,
+    // everything else lowercase hex. Slightly stricter than the old JS regex
+    // since we lowercase first, but that's fine — we only want to strip the
+    // placeholder form the user layer writes.
+    let _ = UUID_RE; // referenced so rustdoc keeps the const accessible.
+    if value.len() != 36 {
+        return false;
+    }
+    let bytes = value.as_bytes();
+    for (i, b) in bytes.iter().enumerate() {
+        match i {
+            8 | 13 | 18 | 23 => {
+                if *b != b'-' {
+                    return false;
+                }
+            }
+            _ => {
+                let c = b.to_ascii_lowercase();
+                let is_hex = c.is_ascii_digit() || (b'a'..=b'f').contains(&c);
+                if !is_hex {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
+/// Ordering for the public feedback listing. Mirrors `FeedSort` but keyed by
+/// strings so the handler can round-trip the query param verbatim. Unknown
+/// values fall through to `latest`.
+fn public_order_by_sql(sort: Option<&str>) -> &'static str {
+    match sort.unwrap_or("latest") {
+        "most_voted" => "vote_score DESC, ae.created_at DESC",
+        "least_voted" => "vote_score ASC, ae.created_at DESC",
+        "popular" => {
+            "(COALESCE(v.upvotes,0) - COALESCE(v.downvotes,0) + COALESCE(cc.comment_count,0)) DESC, ae.created_at DESC"
+        }
+        "trending" => {
+            "((COALESCE(v.upvotes,0) - COALESCE(v.downvotes,0) + COALESCE(cc.comment_count,0))::float8 / POW(EXTRACT(EPOCH FROM (NOW() - ae.created_at))/3600 + 2, 1.5)) DESC, ae.created_at DESC"
+        }
+        _ => "ae.created_at DESC",
+    }
+}
+
+/// Unauthenticated read of `event_type = 'feedback'` posts, shaped for
+/// marketing / roadmap surfaces. Returns aggregate votes, comment counts, and
+/// author profile info directly — no viewer context, so there is no
+/// `viewerVote` on the wire.
+pub async fn list_public_feedback(
+    pool: &PgPool,
+    product: &str,
+    sort: Option<&str>,
+    category: Option<&str>,
+    status: Option<&str>,
+    limit: i64,
+) -> Result<Vec<PublicFeedbackEntry>, AppError> {
+    let order_by = public_order_by_sql(sort);
+    let query = format!(
+        r#"
+        SELECT
+            ae.id,
+            ae.title,
+            COALESCE(ae.metadata->>'body', ae.summary, '') AS body,
+            COALESCE(ae.metadata->>'feedbackCategory', 'feedback') AS category,
+            COALESCE(ae.metadata->>'feedbackStatus', 'not_started') AS status,
+            COALESCE(v.upvotes, 0)   AS upvotes,
+            COALESCE(v.downvotes, 0) AS downvotes,
+            COALESCE(v.upvotes, 0) - COALESCE(v.downvotes, 0) AS vote_score,
+            COALESCE(cc.comment_count, 0) AS comment_count,
+            ae.created_at,
+            p.display_name AS author_name,
+            p.avatar       AS author_avatar
+        FROM activity_events ae
+        LEFT JOIN profiles p ON p.id = ae.profile_id
+        LEFT JOIN LATERAL (
+            SELECT
+                SUM(CASE WHEN vote =  1 THEN 1 ELSE 0 END)::BIGINT AS upvotes,
+                SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END)::BIGINT AS downvotes
+            FROM feedback_votes fv
+            WHERE fv.activity_event_id = ae.id
+        ) v ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT COUNT(1)::BIGINT AS comment_count
+            FROM comments c
+            WHERE c.activity_event_id = ae.id
+        ) cc ON TRUE
+        WHERE ae.event_type = 'feedback'
+          AND COALESCE(ae.metadata->>'feedbackProduct', 'aura') = $1
+          AND ($2::text IS NULL OR ae.metadata->>'feedbackCategory' = $2)
+          AND ($3::text IS NULL OR ae.metadata->>'feedbackStatus'   = $3)
+        ORDER BY {order_by}
+        LIMIT $4
+        "#
+    );
+
+    let mut rows = sqlx::query_as::<_, PublicFeedbackEntry>(&query)
+        .bind(product)
+        .bind(category)
+        .bind(status)
+        .bind(limit)
+        .fetch_all(pool)
+        .await?;
+
+    for row in rows.iter_mut() {
+        if let Some(name) = row.author_name.as_deref() {
+            if looks_like_uuid_display_name(name) {
+                row.author_name = None;
+            }
+        }
+    }
+
+    Ok(rows)
 }

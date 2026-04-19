@@ -4,7 +4,8 @@ use uuid::Uuid;
 use aura_network_core::AppError;
 
 use crate::models::{
-    ActivityEvent, Comment, CreateActivityEventRequest, CreateCommentRequest, VoteSummary,
+    ActivityEvent, Comment, CreateActivityEventRequest, CreateCommentRequest, PublicFeedbackEntry,
+    VoteSummary,
 };
 use crate::repo;
 
@@ -116,6 +117,17 @@ pub async fn get_vote_summary(
     viewer_profile_id: Option<Uuid>,
 ) -> Result<VoteSummary, AppError> {
     repo::get_vote_summary(pool, post_id, viewer_profile_id).await
+}
+
+pub async fn list_public_feedback(
+    pool: &PgPool,
+    product: &str,
+    sort: Option<&str>,
+    category: Option<&str>,
+    status: Option<&str>,
+    limit: i64,
+) -> Result<Vec<PublicFeedbackEntry>, AppError> {
+    repo::list_public_feedback(pool, product, sort, category, status, limit).await
 }
 
 pub async fn patch_post_metadata(

@@ -106,6 +106,51 @@ pub struct CreateCommentRequest {
     pub content: String,
 }
 
+/// Entry returned by `GET /api/public/feedback`. Shape is stable and
+/// intentionally narrower than `ActivityEvent` — marketing / roadmap
+/// surfaces read this without auth, so it's derived from already-public
+/// fields only and bakes the feedback-specific metadata out of
+/// `activity_events.metadata` into flat keys.
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicFeedbackEntry {
+    pub id: Uuid,
+    pub title: String,
+    pub body: String,
+    pub category: String,
+    pub status: String,
+    pub upvotes: i64,
+    pub downvotes: i64,
+    pub vote_score: i64,
+    pub comment_count: i64,
+    pub created_at: DateTime<Utc>,
+    pub author_name: Option<String>,
+    pub author_avatar: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicFeedbackQuery {
+    pub sort: Option<String>,
+    pub category: Option<String>,
+    pub status: Option<String>,
+    pub limit: Option<i64>,
+    /// Optional product filter. Defaults to `"aura"` — the OS feedback surface.
+    /// Left open so the same endpoint can serve future products without a
+    /// schema change.
+    pub product: Option<String>,
+}
+
+impl PublicFeedbackQuery {
+    pub fn limit(&self) -> i64 {
+        self.limit.unwrap_or(100).min(200).max(1)
+    }
+
+    pub fn product(&self) -> &str {
+        self.product.as_deref().unwrap_or("aura")
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedQuery {

@@ -79,6 +79,13 @@ pub fn create_router() -> Router<AppState> {
                 .put(handlers::projects::update_project)
                 .delete(handlers::projects::delete_project),
         )
+        // Public feedback (unauthenticated) — roadmap surface on
+        // marketing sites reads from this. Intentionally registered before
+        // the authed /api/feed route so it's visible in diffs near its peers.
+        .route(
+            "/api/public/feedback",
+            get(handlers::feed::list_public_feedback),
+        )
         // Feed
         .route("/api/feed", get(handlers::feed::get_feed))
         .route("/api/posts", post(handlers::feed::post_activity))
@@ -134,24 +141,14 @@ pub fn create_router() -> Router<AppState> {
         )
         .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
-        .route("/api/orgs/:id/budget", get(handlers::usage::check_budget))
-        // Access Codes
         .route(
-            "/api/access-codes/redeem",
-            post(handlers::access_codes::redeem_code),
-        )
-        .route(
-            "/api/access-codes",
-            get(handlers::access_codes::get_my_code),
+            "/api/orgs/:id/budget",
+            get(handlers::usage::check_budget),
         )
         // Internal
         .route(
             "/internal/users/:zeroUserId",
             get(handlers::internal::get_user_by_zero_id),
-        )
-        .route(
-            "/api/access-codes/grant",
-            post(handlers::access_codes::grant_access),
         )
         .route("/internal/posts", post(handlers::internal::post_activity))
         .route("/internal/usage", post(handlers::internal::record_usage))
@@ -167,10 +164,7 @@ pub fn create_router() -> Router<AppState> {
             "/internal/orgs/:id/usage",
             get(handlers::internal::get_org_usage),
         )
-        .route(
-            "/internal/usage/network",
-            get(handlers::internal::get_network_usage),
-        )
+        .route("/internal/usage/network", get(handlers::internal::get_network_usage))
         .route(
             "/internal/orgs/:id/integrations",
             get(handlers::internal::list_org_integrations),
