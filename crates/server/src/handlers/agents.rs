@@ -79,6 +79,16 @@ pub async fn list_agents(
     Query(query): Query<AgentListQuery>,
 ) -> Result<Json<Vec<models::Agent>>, AppError> {
     let user = super::resolve_user(&state, &auth).await?;
+    // When the caller asks for an org-scoped fleet, verify they are a
+    // member of that org BEFORE running the listing query. The repo
+    // layer drops the user_id filter once org_id is supplied - without
+    // this gate any authenticated user could enumerate every org's
+    // agents just by guessing UUIDs. `get_member` returns
+    // `AppError::Forbidden("Not a member of this organization")` on
+    // miss, which propagates to a clean 403 for the caller.
+    if let Some(org_id) = query.org_id {
+        aura_network_orgs::repo::get_member(&state.pool, org_id, user.id).await?;
+    }
     let agents = handlers::list_agents(&state.pool, user.id, query.org_id).await?;
     Ok(Json(agents))
 }

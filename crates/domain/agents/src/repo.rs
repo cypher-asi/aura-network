@@ -72,11 +72,21 @@ pub async fn list(
     user_id: Uuid,
     org_id: Option<Uuid>,
 ) -> Result<Vec<Agent>, AppError> {
+    // When `org_id` is provided the intent is "give me the org fleet"
+    // (e.g. the CEO's `list_agents` tool asking for every teammate's
+    // agent in this org). The caller is responsible for verifying the
+    // user is a member of that org BEFORE invoking this repo function
+    // (see `handlers::agents::list_agents` in `crates/server`). That
+    // member check is the authorization gate; here we just return the
+    // catalog.
+    //
+    // When `org_id` is absent we fall back to the legacy
+    // "your own agents" view filtered by `user_id` — used by the
+    // Account page / any caller that hasn't adopted the org query yet.
     let agents = if let Some(org_id) = org_id {
         sqlx::query_as::<_, Agent>(
-            "SELECT * FROM agents WHERE user_id = $1 AND org_id = $2 ORDER BY created_at",
+            "SELECT * FROM agents WHERE org_id = $1 ORDER BY created_at",
         )
-        .bind(user_id)
         .bind(org_id)
         .fetch_all(pool)
         .await?

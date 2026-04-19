@@ -12,11 +12,11 @@ use crate::state::AppState;
 /// profile yet (e.g. a freshly-registered user); vote aggregates will then
 /// report `viewerVote = "none"` without erroring.
 async fn viewer_profile_id(
-    pool: &sqlx::PgPool,
+    state: &AppState,
     auth: &AuthUser,
 ) -> Result<Option<Uuid>, AppError> {
-    let user = super::resolve_user(pool, auth).await?;
-    match aura_network_users::repo::get_profile_by_user_id(pool, user.id).await {
+    let user = super::resolve_user(state, auth).await?;
+    match aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await {
         Ok(profile) => Ok(Some(profile.id)),
         Err(AppError::NotFound(_)) => Ok(None),
         Err(err) => Err(err),
@@ -24,11 +24,11 @@ async fn viewer_profile_id(
 }
 
 async fn require_viewer_profile_id(
-    pool: &sqlx::PgPool,
+    state: &AppState,
     auth: &AuthUser,
 ) -> Result<Uuid, AppError> {
-    let user = super::resolve_user(pool, auth).await?;
-    let profile = aura_network_users::repo::get_profile_by_user_id(pool, user.id).await?;
+    let user = super::resolve_user(state, auth).await?;
+    let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     Ok(profile.id)
 }
 
@@ -37,7 +37,7 @@ pub async fn get_feed(
     State(state): State<AppState>,
     Query(query): Query<models::FeedQuery>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
     let viewer_profile_id = match aura_network_users::repo::get_profile_by_user_id(
         &state.pool,
         user.id,
@@ -73,8 +73,8 @@ pub async fn get_profile_activity(
     Path(profile_id): Path<Uuid>,
     Query(query): Query<aura_network_core::PaginationParams>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
-    let user = super::resolve_user(&state.pool, &auth).await?;
-    let viewer = viewer_profile_id(&state.pool, &auth).await?;
+    let user = super::resolve_user(&state, &auth).await?;
+    let viewer = viewer_profile_id(&state, &auth).await?;
     let events = handlers::get_profile_activity(
         &state.pool,
         profile_id,
@@ -92,7 +92,7 @@ pub async fn get_post(
     State(state): State<AppState>,
     Path(post_id): Path<Uuid>,
 ) -> Result<Json<models::ActivityEvent>, AppError> {
-    let viewer = viewer_profile_id(&state.pool, &auth).await?;
+    let viewer = viewer_profile_id(&state, &auth).await?;
     let event = handlers::get_post(&state.pool, post_id, viewer).await?;
     Ok(Json(event))
 }
@@ -106,9 +106,9 @@ pub async fn post_activity(
     // pass profileId explicitly (thin proxies like aura-os-server don't
     // always carry it in their session).
     if input.profile_id.is_none() {
-        input.profile_id = Some(require_viewer_profile_id(&state.pool, &auth).await?);
+        input.profile_id = Some(require_viewer_profile_id(&state, &auth).await?);
     } else {
-        super::resolve_user(&state.pool, &auth).await?;
+        super::resolve_user(&state, &auth).await?;
     }
     let event = handlers::post_activity(&state.pool, input).await?;
 
@@ -137,7 +137,7 @@ pub async fn create_comment(
     Path(event_id): Path<Uuid>,
     Json(input): Json<models::CreateCommentRequest>,
 ) -> Result<Json<models::Comment>, AppError> {
-    let profile_id = require_viewer_profile_id(&state.pool, &auth).await?;
+    let profile_id = require_viewer_profile_id(&state, &auth).await?;
     let comment = handlers::create_comment(&state.pool, event_id, profile_id, input).await?;
     Ok(Json(comment))
 }
@@ -147,7 +147,7 @@ pub async fn delete_comment(
     State(state): State<AppState>,
     Path(comment_id): Path<Uuid>,
 ) -> Result<axum::http::StatusCode, AppError> {
-    let profile_id = require_viewer_profile_id(&state.pool, &auth).await?;
+    let profile_id = require_viewer_profile_id(&state, &auth).await?;
     handlers::delete_comment(&state.pool, comment_id, profile_id).await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
@@ -158,7 +158,7 @@ pub async fn cast_vote(
     Path(post_id): Path<Uuid>,
     Json(input): Json<models::CastVoteRequest>,
 ) -> Result<Json<models::VoteSummary>, AppError> {
-    let profile_id = require_viewer_profile_id(&state.pool, &auth).await?;
+    let profile_id = require_viewer_profile_id(&state, &auth).await?;
     let summary = handlers::cast_vote(&state.pool, post_id, profile_id, &input.vote).await?;
     Ok(Json(summary))
 }
@@ -168,7 +168,7 @@ pub async fn get_vote_summary(
     State(state): State<AppState>,
     Path(post_id): Path<Uuid>,
 ) -> Result<Json<models::VoteSummary>, AppError> {
-    let viewer = viewer_profile_id(&state.pool, &auth).await?;
+    let viewer = viewer_profile_id(&state, &auth).await?;
     let summary = handlers::get_vote_summary(&state.pool, post_id, viewer).await?;
     Ok(Json(summary))
 }
@@ -179,7 +179,7 @@ pub async fn patch_post(
     Path(post_id): Path<Uuid>,
     Json(input): Json<models::PatchPostRequest>,
 ) -> Result<Json<models::ActivityEvent>, AppError> {
-    let viewer = viewer_profile_id(&state.pool, &auth).await?;
+    let viewer = viewer_profile_id(&state, &auth).await?;
     let metadata = input.metadata.ok_or_else(|| {
         AppError::BadRequest("patch body must include a metadata object".into())
     })?;
