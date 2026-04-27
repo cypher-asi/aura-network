@@ -100,6 +100,15 @@ pub async fn get_project_usage(
     Ok(Json(usage))
 }
 
+pub async fn get_task_usage(
+    _auth: InternalAuth,
+    State(state): State<AppState>,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<aura_network_usage::models::UsageSummary>, AppError> {
+    let usage = aura_network_usage::handlers::get_task_usage(&state.pool, task_id).await?;
+    Ok(Json(usage))
+}
+
 pub async fn get_org_usage(
     _auth: InternalAuth,
     State(state): State<AppState>,
@@ -123,7 +132,8 @@ pub async fn get_network_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
         FROM token_usage_daily
         "#,
     )

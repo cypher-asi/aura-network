@@ -45,6 +45,10 @@ pub async fn get_project_usage(
     repo::get_project_usage(pool, project_id, period).await
 }
 
+pub async fn get_task_usage(pool: &PgPool, task_id: Uuid) -> Result<UsageSummary, AppError> {
+    repo::get_task_usage(pool, task_id).await
+}
+
 pub async fn check_budget(
     pool: &PgPool,
     org_id: Uuid,

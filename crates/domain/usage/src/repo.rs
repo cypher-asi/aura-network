@@ -20,9 +20,9 @@ fn period_to_date_clause(period: Option<&str>) -> &'static str {
 pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(), AppError> {
     sqlx::query(
         r#"
-        INSERT INTO token_usage_daily (org_id, user_id, agent_id, project_id, model, date, input_tokens, output_tokens, estimated_cost_usd, duration_ms)
-        VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8, $9)
-        ON CONFLICT (COALESCE(org_id, '00000000-0000-0000-0000-000000000000'), user_id, COALESCE(agent_id, '00000000-0000-0000-0000-000000000000'), COALESCE(project_id, '00000000-0000-0000-0000-000000000000'), model, date)
+        INSERT INTO token_usage_daily (org_id, user_id, agent_id, project_id, task_id, model, date, input_tokens, output_tokens, estimated_cost_usd, duration_ms)
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, $7, $8, $9, $10)
+        ON CONFLICT (COALESCE(org_id, '00000000-0000-0000-0000-000000000000'), user_id, COALESCE(agent_id, '00000000-0000-0000-0000-000000000000'), COALESCE(project_id, '00000000-0000-0000-0000-000000000000'), COALESCE(task_id, '00000000-0000-0000-0000-000000000000'), model, date)
         DO UPDATE SET
             input_tokens = token_usage_daily.input_tokens + EXCLUDED.input_tokens,
             output_tokens = token_usage_daily.output_tokens + EXCLUDED.output_tokens,
@@ -34,6 +34,7 @@ pub async fn record_usage(pool: &PgPool, input: &RecordUsageRequest) -> Result<(
     .bind(input.user_id)
     .bind(input.agent_id)
     .bind(input.project_id)
+    .bind(input.task_id)
     .bind(&input.model)
     .bind(input.input_tokens)
     .bind(input.output_tokens)
@@ -58,7 +59,8 @@ pub async fn get_org_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
         "#,
@@ -86,7 +88,8 @@ pub async fn get_member_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
         FROM token_usage_daily
         WHERE org_id = $1 {date_clause}
         GROUP BY user_id
@@ -115,7 +118,8 @@ pub async fn get_personal_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
         FROM token_usage_daily
         WHERE user_id = $1 {date_clause}
         "#,
@@ -142,7 +146,8 @@ pub async fn get_project_usage(
             COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
             COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
             COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
-            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
         FROM token_usage_daily
         WHERE project_id = $1 {date_clause}
         "#,
@@ -152,6 +157,29 @@ pub async fn get_project_usage(
         .bind(project_id)
         .fetch_one(pool)
         .await?;
+
+    Ok(row)
+}
+
+/// Per-task usage aggregation. Used by the per-task analytics surface to
+/// compute task time vs. model time. Sums tokens, cost, and inference
+/// duration over all router-recorded rows tagged with the task_id.
+pub async fn get_task_usage(pool: &PgPool, task_id: Uuid) -> Result<UsageSummary, AppError> {
+    let row = sqlx::query_as::<_, UsageSummary>(
+        r#"
+        SELECT
+            COALESCE(SUM(input_tokens), 0)::int8 as total_input_tokens,
+            COALESCE(SUM(output_tokens), 0)::int8 as total_output_tokens,
+            COALESCE(SUM(input_tokens + output_tokens), 0)::int8 as total_tokens,
+            COALESCE(SUM(estimated_cost_usd)::float8, 0.0) as total_cost_usd,
+            COALESCE(SUM(duration_ms), 0)::int8 as total_duration_ms
+        FROM token_usage_daily
+        WHERE task_id = $1
+        "#,
+    )
+    .bind(task_id)
+    .fetch_one(pool)
+    .await?;
 
     Ok(row)
 }

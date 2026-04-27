@@ -63,6 +63,11 @@ pub async fn update_project(
     Ok(Json(project))
 }
 
+/// Soft-delete: marks the project as `status='deleted'` so it disappears
+/// from the regular project list but stays recoverable via
+/// `POST /api/projects/:id/restore`. All linked rows (activity_events,
+/// token_usage_daily, aura-storage tasks/sessions/specs/agents) are left
+/// untouched — recovery is a single status flip.
 pub async fn delete_project(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -72,81 +77,56 @@ pub async fn delete_project(
     let existing = handlers::get_project(&state.pool, project_id).await?;
     org_repo::require_role(&state.pool, existing.org_id, user.id, "admin").await?;
 
-    // Check aura-storage for project agents before allowing delete
-    if let Some(ref storage_url) = state.aura_storage_url {
-        let url = format!(
-            "{}/internal/projects/{}/agents/count",
-            storage_url, project_id
-        );
-        let response = state
-            .http_client
-            .get(&url)
-            .header("X-Internal-Token", &state.internal_token.0)
-            .send()
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, "Failed to check project agents in aura-storage");
-                AppError::Internal("Failed to verify project agent status".into())
-            })?;
-
-        if response.status().is_success() {
-            let body: serde_json::Value = response.json().await.map_err(|e| {
-                tracing::error!(error = %e, "Failed to parse aura-storage response");
-                AppError::Internal("Failed to verify project agent status".into())
-            })?;
-
-            let count = body["count"].as_i64().unwrap_or(0);
-            if count > 0 {
-                return Err(AppError::BadRequest(
-                    "Cannot delete project with existing project agents. Delete all project agents first.".into(),
-                ));
-            }
-        }
-    }
-
-    // Nullify project references before deleting (safety net; migration 0030
-    // adds ON DELETE SET NULL for activity_events, but token_usage_daily has
-    // no FK constraint so this UPDATE is the only cleanup path for it).
-    sqlx::query("UPDATE activity_events SET project_id = NULL WHERE project_id = $1")
-        .bind(project_id)
-        .execute(&state.pool)
-        .await?;
-    sqlx::query("UPDATE token_usage_daily SET project_id = NULL WHERE project_id = $1")
-        .bind(project_id)
-        .execute(&state.pool)
-        .await?;
-
-    handlers::delete_project(&state.pool, project_id).await?;
-
-    // Cascade cleanup in aura-storage (best-effort — project is already deleted)
-    if let Some(ref storage_url) = state.aura_storage_url {
-        let url = format!("{}/internal/projects/{}", storage_url, project_id);
-        match state
-            .http_client
-            .delete(&url)
-            .header("X-Internal-Token", &state.internal_token.0)
-            .send()
-            .await
-        {
-            Ok(resp) if resp.status().is_success() => {
-                tracing::info!(project_id = %project_id, "aura-storage project data cleaned up");
-            }
-            Ok(resp) => {
-                tracing::warn!(
-                    project_id = %project_id,
-                    status = %resp.status(),
-                    "aura-storage project cleanup returned non-success status"
-                );
-            }
-            Err(e) => {
-                tracing::warn!(
-                    project_id = %project_id,
-                    error = %e,
-                    "failed to clean up project data in aura-storage"
-                );
-            }
-        }
-    }
+    handlers::update_project(
+        &state.pool,
+        project_id,
+        models::UpdateProjectRequest {
+            name: None,
+            description: None,
+            folder: None,
+            status: Some("deleted".into()),
+            visibility: None,
+        },
+    )
+    .await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Restore a soft-deleted project by flipping `status` back to `'active'`.
+pub async fn restore_project(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<models::Project>, AppError> {
+    let user = resolve_user(&state, &auth).await?;
+    let existing = handlers::get_project(&state.pool, project_id).await?;
+    org_repo::require_role(&state.pool, existing.org_id, user.id, "admin").await?;
+
+    let project = handlers::update_project(
+        &state.pool,
+        project_id,
+        models::UpdateProjectRequest {
+            name: None,
+            description: None,
+            folder: None,
+            status: Some("active".into()),
+            visibility: None,
+        },
+    )
+    .await?;
+
+    Ok(Json(project))
+}
+
+/// Returns soft-deleted projects in the org. Used by the recovery UI.
+pub async fn list_deleted_projects(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Query(query): Query<ProjectListQuery>,
+) -> Result<Json<Vec<models::Project>>, AppError> {
+    let user = resolve_user(&state, &auth).await?;
+    org_repo::get_member(&state.pool, query.org_id, user.id).await?;
+    let projects = handlers::list_deleted_projects(&state.pool, query.org_id).await?;
+    Ok(Json(projects))
 }

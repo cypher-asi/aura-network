@@ -17,6 +17,13 @@ pub async fn list_projects(pool: &PgPool, org_id: Uuid) -> Result<Vec<Project>, 
     repo::list(pool, org_id).await
 }
 
+pub async fn list_deleted_projects(
+    pool: &PgPool,
+    org_id: Uuid,
+) -> Result<Vec<Project>, AppError> {
+    repo::list_deleted(pool, org_id).await
+}
+
 pub async fn get_project(pool: &PgPool, project_id: Uuid) -> Result<Project, AppError> {
     repo::get(pool, project_id).await
 }

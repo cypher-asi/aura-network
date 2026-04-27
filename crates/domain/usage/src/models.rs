@@ -52,6 +52,9 @@ pub struct RecordUsageRequest {
     pub zero_user_id: Option<String>,
     pub agent_id: Option<Uuid>,
     pub project_id: Option<Uuid>,
+    /// Optional per-task attribution. Stamped by aura-router from
+    /// `x-aura-task-id` header. Enables per-task model-time aggregation.
+    pub task_id: Option<Uuid>,
     pub model: String,
     pub input_tokens: i64,
     pub output_tokens: i64,
@@ -66,6 +69,9 @@ pub struct UsageSummary {
     pub total_output_tokens: i64,
     pub total_tokens: i64,
     pub total_cost_usd: f64,
+    /// Sum of per-call inference durations ("model time"). aura-storage
+    /// surfaces this as `totalModelTimeSeconds` in the stats response.
+    pub total_duration_ms: i64,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]

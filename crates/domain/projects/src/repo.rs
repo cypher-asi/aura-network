@@ -38,8 +38,21 @@ pub async fn create(pool: &PgPool, input: &CreateProjectRequest) -> Result<Proje
 }
 
 pub async fn list(pool: &PgPool, org_id: Uuid) -> Result<Vec<Project>, AppError> {
+    // Excludes soft-deleted projects. Recovery view uses `list_deleted`.
     let projects = sqlx::query_as::<_, Project>(
-        "SELECT * FROM projects WHERE org_id = $1 ORDER BY created_at",
+        "SELECT * FROM projects WHERE org_id = $1 AND status != 'deleted' ORDER BY created_at",
+    )
+    .bind(org_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(projects)
+}
+
+/// Returns soft-deleted projects in the org. Used by the recovery UI.
+pub async fn list_deleted(pool: &PgPool, org_id: Uuid) -> Result<Vec<Project>, AppError> {
+    let projects = sqlx::query_as::<_, Project>(
+        "SELECT * FROM projects WHERE org_id = $1 AND status = 'deleted' ORDER BY updated_at DESC",
     )
     .bind(org_id)
     .fetch_all(pool)
@@ -63,10 +76,10 @@ pub async fn update(
 ) -> Result<Project, AppError> {
     if let Some(ref status) = input.status {
         match status.as_str() {
-            "active" | "archived" => {}
+            "active" | "archived" | "deleted" => {}
             _ => {
                 return Err(AppError::BadRequest(format!(
-                    "Invalid project status: '{status}'. Must be active or archived"
+                    "Invalid project status: '{status}'. Must be active, archived, or deleted"
                 )))
             }
         }

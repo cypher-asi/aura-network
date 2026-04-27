@@ -73,11 +73,21 @@ pub fn create_router() -> Router<AppState> {
             "/api/projects",
             post(handlers::projects::create_project).get(handlers::projects::list_projects),
         )
+        // Deleted projects list — registered before /:id so it isn't shadowed
+        // by the dynamic path segment.
+        .route(
+            "/api/projects/deleted",
+            get(handlers::projects::list_deleted_projects),
+        )
         .route(
             "/api/projects/:id",
             get(handlers::projects::get_project)
                 .put(handlers::projects::update_project)
                 .delete(handlers::projects::delete_project),
+        )
+        .route(
+            "/api/projects/:id/restore",
+            post(handlers::projects::restore_project),
         )
         // Public feedback (unauthenticated) — roadmap surface on
         // marketing sites reads from this. Intentionally registered before
@@ -159,6 +169,10 @@ pub fn create_router() -> Router<AppState> {
         .route(
             "/internal/projects/:projectId/usage",
             get(handlers::internal::get_project_usage),
+        )
+        .route(
+            "/internal/tasks/:taskId/usage",
+            get(handlers::internal::get_task_usage),
         )
         .route(
             "/internal/orgs/:id/usage",
