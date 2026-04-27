@@ -19,6 +19,7 @@ pub struct TestApp {
     pub addr: String,
     pub client: Client,
     pub internal_token: String,
+    pub pool: PgPool,
 }
 
 #[allow(dead_code)]
@@ -83,6 +84,7 @@ pub async fn spawn_app(pool: PgPool) -> TestApp {
 
     let (events_tx, _) = broadcast::channel::<String>(16);
 
+    let pool_for_test = pool.clone();
     let state = AppState {
         pool,
         validator: TokenValidator::new(
@@ -108,6 +110,7 @@ pub async fn spawn_app(pool: PgPool) -> TestApp {
         addr,
         client: Client::new(),
         internal_token: TEST_INTERNAL_TOKEN.to_string(),
+        pool: pool_for_test,
     }
 }
 
