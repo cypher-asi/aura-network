@@ -266,12 +266,14 @@ async fn delete_project_preserves_associations(pool: sqlx::PgPool) {
         .unwrap();
 
     // Usage row's project_id must still point at our project.
-    let cnt: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM token_usage_daily WHERE project_id = $1",
-    )
-    .bind(project_id)
-    .fetch_one(&app.pool)
-    .await
-    .unwrap();
-    assert_eq!(cnt, 1, "soft delete must not null out token_usage_daily.project_id");
+    let cnt: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM token_usage_daily WHERE project_id = $1")
+            .bind(project_id)
+            .fetch_one(&app.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        cnt, 1,
+        "soft delete must not null out token_usage_daily.project_id"
+    );
 }

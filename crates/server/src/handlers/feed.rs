@@ -11,10 +11,7 @@ use crate::state::AppState;
 /// Best-effort viewer profile lookup. Returns `None` if the viewer has no
 /// profile yet (e.g. a freshly-registered user); vote aggregates will then
 /// report `viewerVote = "none"` without erroring.
-async fn viewer_profile_id(
-    state: &AppState,
-    auth: &AuthUser,
-) -> Result<Option<Uuid>, AppError> {
+async fn viewer_profile_id(state: &AppState, auth: &AuthUser) -> Result<Option<Uuid>, AppError> {
     let user = super::resolve_user(state, auth).await?;
     match aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await {
         Ok(profile) => Ok(Some(profile.id)),
@@ -23,10 +20,7 @@ async fn viewer_profile_id(
     }
 }
 
-async fn require_viewer_profile_id(
-    state: &AppState,
-    auth: &AuthUser,
-) -> Result<Uuid, AppError> {
+async fn require_viewer_profile_id(state: &AppState, auth: &AuthUser) -> Result<Uuid, AppError> {
     let user = super::resolve_user(state, auth).await?;
     let profile = aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await?;
     Ok(profile.id)
@@ -38,20 +32,15 @@ pub async fn get_feed(
     Query(query): Query<models::FeedQuery>,
 ) -> Result<Json<Vec<models::ActivityEvent>>, AppError> {
     let user = super::resolve_user(&state, &auth).await?;
-    let viewer_profile_id = match aura_network_users::repo::get_profile_by_user_id(
-        &state.pool,
-        user.id,
-    )
-    .await
-    {
-        Ok(profile) => Some(profile.id),
-        Err(AppError::NotFound(_)) => None,
-        Err(err) => return Err(err),
-    };
+    let viewer_profile_id =
+        match aura_network_users::repo::get_profile_by_user_id(&state.pool, user.id).await {
+            Ok(profile) => Some(profile.id),
+            Err(AppError::NotFound(_)) => None,
+            Err(err) => return Err(err),
+        };
     let sort = match query.sort.as_deref() {
-        Some(raw) => handlers::FeedSort::from_str(raw).ok_or_else(|| {
-            AppError::BadRequest(format!("invalid feed sort: '{raw}'"))
-        })?,
+        Some(raw) => handlers::FeedSort::parse(raw)
+            .ok_or_else(|| AppError::BadRequest(format!("invalid feed sort: '{raw}'")))?,
         None => handlers::FeedSort::default(),
     };
     let events = handlers::get_feed(
@@ -180,9 +169,9 @@ pub async fn patch_post(
     Json(input): Json<models::PatchPostRequest>,
 ) -> Result<Json<models::ActivityEvent>, AppError> {
     let viewer = viewer_profile_id(&state, &auth).await?;
-    let metadata = input.metadata.ok_or_else(|| {
-        AppError::BadRequest("patch body must include a metadata object".into())
-    })?;
+    let metadata = input
+        .metadata
+        .ok_or_else(|| AppError::BadRequest("patch body must include a metadata object".into()))?;
     let event = handlers::patch_post_metadata(&state.pool, post_id, viewer, &metadata).await?;
     Ok(Json(event))
 }

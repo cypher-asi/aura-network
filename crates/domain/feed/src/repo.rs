@@ -169,9 +169,8 @@ pub async fn get_feed(
     };
 
     let order_by = sort.order_by_sql();
-    let query = format!(
-        "{SELECT_EVENT_WITH_VOTES}{where_clause} ORDER BY {order_by} LIMIT $3 OFFSET $4"
-    );
+    let query =
+        format!("{SELECT_EVENT_WITH_VOTES}{where_clause} ORDER BY {order_by} LIMIT $3 OFFSET $4");
 
     let events = sqlx::query_as::<_, ActivityEvent>(&query)
         .bind(viewer_profile_id)
@@ -187,8 +186,9 @@ pub async fn get_feed(
 /// Sorting strategies for the feed. The default `Latest` matches the previous
 /// behaviour so no caller needs to change unless they opt into a different
 /// mode.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum FeedSort {
+    #[default]
     Latest,
     MostVoted,
     LeastVoted,
@@ -197,7 +197,7 @@ pub enum FeedSort {
 }
 
 impl FeedSort {
-    pub fn from_str(value: &str) -> Option<Self> {
+    pub fn parse(value: &str) -> Option<Self> {
         match value {
             "latest" => Some(Self::Latest),
             "most_voted" => Some(Self::MostVoted),
@@ -222,12 +222,6 @@ impl FeedSort {
                 "((COALESCE(v.upvotes,0) - COALESCE(v.downvotes,0) + (SELECT COUNT(1) FROM comments c WHERE c.activity_event_id = ae.id))::float8 / POW(EXTRACT(EPOCH FROM (NOW() - ae.created_at))/3600 + 2, 1.5)) DESC, ae.created_at DESC"
             }
         }
-    }
-}
-
-impl Default for FeedSort {
-    fn default() -> Self {
-        Self::Latest
     }
 }
 

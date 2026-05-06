@@ -406,7 +406,10 @@ async fn list_agents_marketplace_filter_supports_expertise(pool: sqlx::PgPool) {
         .unwrap();
 
     let res = app
-        .get_authed("/api/agents?listing_status=hireable&expertise=coding", &jwt_b)
+        .get_authed(
+            "/api/agents?listing_status=hireable&expertise=coding",
+            &jwt_b,
+        )
         .send()
         .await
         .unwrap();

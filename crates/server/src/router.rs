@@ -104,10 +104,7 @@ pub fn create_router() -> Router<AppState> {
             get(handlers::feed::get_post).patch(handlers::feed::patch_post),
         )
         // Votes
-        .route(
-            "/api/posts/:id/votes",
-            post(handlers::feed::cast_vote),
-        )
+        .route("/api/posts/:id/votes", post(handlers::feed::cast_vote))
         .route(
             "/api/posts/:id/votes/summary",
             get(handlers::feed::get_vote_summary),
@@ -151,9 +148,19 @@ pub fn create_router() -> Router<AppState> {
         )
         .route("/api/usage", post(handlers::usage::record_usage))
         .route("/api/stats", get(handlers::usage::get_stats))
+        .route("/api/orgs/:id/budget", get(handlers::usage::check_budget))
+        // Access Codes
         .route(
-            "/api/orgs/:id/budget",
-            get(handlers::usage::check_budget),
+            "/api/access-codes",
+            get(handlers::access_codes::get_my_code),
+        )
+        .route(
+            "/api/access-codes/redeem",
+            post(handlers::access_codes::redeem_code),
+        )
+        .route(
+            "/api/access-codes/grant",
+            post(handlers::access_codes::grant_access),
         )
         // Internal
         .route(
@@ -178,7 +185,10 @@ pub fn create_router() -> Router<AppState> {
             "/internal/orgs/:id/usage",
             get(handlers::internal::get_org_usage),
         )
-        .route("/internal/usage/network", get(handlers::internal::get_network_usage))
+        .route(
+            "/internal/usage/network",
+            get(handlers::internal::get_network_usage),
+        )
         .route(
             "/internal/orgs/:id/integrations",
             get(handlers::internal::list_org_integrations),

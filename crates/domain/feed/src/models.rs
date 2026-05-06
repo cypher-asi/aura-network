@@ -143,7 +143,7 @@ pub struct PublicFeedbackQuery {
 
 impl PublicFeedbackQuery {
     pub fn limit(&self) -> i64 {
-        self.limit.unwrap_or(100).min(200).max(1)
+        self.limit.unwrap_or(100).clamp(1, 200)
     }
 
     pub fn product(&self) -> &str {
@@ -162,7 +162,7 @@ pub struct FeedQuery {
 
 impl FeedQuery {
     pub fn limit(&self) -> i64 {
-        self.limit.unwrap_or(50).min(100).max(1)
+        self.limit.unwrap_or(50).clamp(1, 100)
     }
 
     pub fn offset(&self) -> i64 {

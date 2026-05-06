@@ -177,10 +177,7 @@ pub async fn list(
         qb.push_bind(offset);
     }
 
-    let agents = qb
-        .build_query_as::<Agent>()
-        .fetch_all(pool)
-        .await?;
+    let agents = qb.build_query_as::<Agent>().fetch_all(pool).await?;
 
     Ok(agents)
 }
