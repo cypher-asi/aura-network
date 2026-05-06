@@ -18,6 +18,21 @@ pub struct Agent {
     pub wallet_address: Option<String>,
     pub vm_id: Option<String>,
     pub last_active_at: Option<DateTime<Utc>>,
+    /// Marketplace discoverability. `"closed"` (default) or
+    /// `"hireable"`. Hireable rows surface in the cross-user
+    /// `GET /api/agents?listing_status=hireable` view.
+    pub listing_status: String,
+    /// Marketplace expertise slugs (e.g. `"coding"`, `"devops"`).
+    pub expertise: Vec<String>,
+    /// Aggregated marketplace stats. Server-computed; clients should
+    /// treat them as read-only on create/update.
+    pub jobs: i64,
+    pub revenue_usd: f64,
+    pub reputation: f32,
+    /// Free-form tags. Used by aura-os-server's legacy dual-write
+    /// fallback (`listing_status:hireable`, `expertise:<slug>`) so
+    /// older readers can still observe marketplace state.
+    pub tags: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -33,6 +48,10 @@ pub struct CreateAgentRequest {
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
+    /// `"closed"` or `"hireable"`. Defaults to `"closed"` when omitted.
+    pub listing_status: Option<String>,
+    pub expertise: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -45,6 +64,14 @@ pub struct UpdateAgentRequest {
     pub skills: Option<Vec<String>>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
+    /// Patch-style: `None` leaves the stored value, `Some("hireable")`
+    /// flips it. Server validates against `closed`/`hireable`.
+    pub listing_status: Option<String>,
+    /// `None` leaves the stored array, `Some(vec)` replaces it
+    /// wholesale (matching aura-os-server's "replace tags wholesale"
+    /// semantics).
+    pub expertise: Option<Vec<String>>,
+    pub tags: Option<Vec<String>>,
     /// Server-set only — ignored in user-facing deserialization.
     #[serde(skip_deserializing)]
     pub wallet_address: Option<String>,

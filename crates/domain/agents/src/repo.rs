@@ -1,9 +1,35 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use aura_network_core::AppError;
 
 use crate::models::{Agent, CreateAgentRequest, UpdateAgentRequest};
+
+const MAX_LIST_LIMIT: i64 = 100;
+const DEFAULT_LIST_LIMIT: i64 = 50;
+
+/// Filters accepted by [`list`]. `listing_status = Some("hireable")`
+/// flips the query into the cross-user marketplace view; otherwise
+/// the legacy caller-scoped (or org-scoped) behaviour is preserved.
+#[derive(Debug, Default, Clone)]
+pub struct ListFilters {
+    pub org_id: Option<Uuid>,
+    pub listing_status: Option<String>,
+    pub expertise: Option<String>,
+    pub sort: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+fn validate_listing_status(value: &str) -> Result<(), AppError> {
+    if matches!(value, "closed" | "hireable") {
+        Ok(())
+    } else {
+        Err(AppError::BadRequest(format!(
+            "Invalid listing_status '{value}'. Must be 'closed' or 'hireable'"
+        )))
+    }
+}
 
 pub async fn create(
     pool: &PgPool,
@@ -26,10 +52,19 @@ pub async fn create(
         )));
     }
 
+    let listing_status = input.listing_status.as_deref().unwrap_or("closed");
+    validate_listing_status(listing_status)?;
+
+    let expertise = input.expertise.clone().unwrap_or_default();
+    let tags = input.tags.clone().unwrap_or_default();
+
     let agent = sqlx::query_as::<_, Agent>(
         r#"
-        INSERT INTO agents (user_id, org_id, name, role, personality, system_prompt, skills, icon, machine_type)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO agents (
+            user_id, org_id, name, role, personality, system_prompt, skills, icon,
+            machine_type, listing_status, expertise, tags
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
         "#,
     )
@@ -42,6 +77,9 @@ pub async fn create(
     .bind(&skills_json)
     .bind(&input.icon)
     .bind(machine_type)
+    .bind(listing_status)
+    .bind(&expertise)
+    .bind(&tags)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -70,32 +108,79 @@ pub async fn create(
 pub async fn list(
     pool: &PgPool,
     user_id: Uuid,
-    org_id: Option<Uuid>,
+    filters: &ListFilters,
 ) -> Result<Vec<Agent>, AppError> {
-    // When `org_id` is provided the intent is "give me the org fleet"
-    // (e.g. the CEO's `list_agents` tool asking for every teammate's
-    // agent in this org). The caller is responsible for verifying the
-    // user is a member of that org BEFORE invoking this repo function
-    // (see `handlers::agents::list_agents` in `crates/server`). That
-    // member check is the authorization gate; here we just return the
-    // catalog.
+    // Scoping:
+    //   listing_status = Some("hireable")  -> cross-user marketplace view
+    //   org_id = Some(_)                   -> org fleet (membership gated upstream)
+    //   else                               -> caller's own agents
     //
-    // When `org_id` is absent we fall back to the legacy
-    // "your own agents" view filtered by `user_id` — used by the
-    // Account page / any caller that hasn't adopted the org query yet.
-    let agents = if let Some(org_id) = org_id {
-        sqlx::query_as::<_, Agent>(
-            "SELECT * FROM agents WHERE org_id = $1 ORDER BY created_at",
-        )
-        .bind(org_id)
-        .fetch_all(pool)
-        .await?
+    // The marketplace view *must* drop the caller-scoped user_id filter,
+    // otherwise the page can never surface other users' listings.
+    let is_marketplace = filters.listing_status.as_deref() == Some("hireable");
+
+    if let Some(value) = filters.listing_status.as_deref() {
+        if !value.is_empty() {
+            validate_listing_status(value)?;
+        }
+    }
+
+    let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT * FROM agents WHERE ");
+
+    if is_marketplace {
+        qb.push("listing_status = 'hireable'");
+    } else if let Some(org_id) = filters.org_id {
+        qb.push("org_id = ");
+        qb.push_bind(org_id);
     } else {
-        sqlx::query_as::<_, Agent>("SELECT * FROM agents WHERE user_id = $1 ORDER BY created_at")
-            .bind(user_id)
-            .fetch_all(pool)
-            .await?
+        qb.push("user_id = ");
+        qb.push_bind(user_id);
+    }
+
+    if let Some(slug) = filters.expertise.as_ref().filter(|s| !s.is_empty()) {
+        qb.push(" AND expertise @> ARRAY[");
+        qb.push_bind(slug.clone());
+        qb.push("]::text[]");
+    }
+
+    let order_by = match filters.sort.as_deref() {
+        Some("latest") => "created_at DESC",
+        Some("revenue") => "revenue_usd DESC",
+        Some("reputation") => "reputation DESC",
+        // "trending" is the default for the marketplace view; the legacy
+        // caller-scoped list keeps its historical ascending `created_at`.
+        Some("trending") | Some("") | None => {
+            if is_marketplace {
+                "jobs DESC"
+            } else {
+                "created_at"
+            }
+        }
+        Some(other) => {
+            return Err(AppError::BadRequest(format!(
+                "Invalid sort '{other}'. Must be one of trending|latest|revenue|reputation"
+            )))
+        }
     };
+    qb.push(" ORDER BY ");
+    qb.push(order_by);
+
+    let limit = filters
+        .limit
+        .unwrap_or(DEFAULT_LIST_LIMIT)
+        .clamp(1, MAX_LIST_LIMIT);
+    qb.push(" LIMIT ");
+    qb.push_bind(limit);
+
+    if let Some(offset) = filters.offset.filter(|o| *o > 0) {
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+    }
+
+    let agents = qb
+        .build_query_as::<Agent>()
+        .fetch_all(pool)
+        .await?;
 
     Ok(agents)
 }
@@ -132,6 +217,10 @@ pub async fn update(
         }
     }
 
+    if let Some(ref ls) = input.listing_status {
+        validate_listing_status(ls)?;
+    }
+
     let agent = sqlx::query_as::<_, Agent>(
         r#"
         UPDATE agents SET
@@ -144,6 +233,9 @@ pub async fn update(
             machine_type = COALESCE($8, machine_type),
             wallet_address = COALESCE($9, wallet_address),
             vm_id = COALESCE($10, vm_id),
+            listing_status = COALESCE($11, listing_status),
+            expertise = COALESCE($12, expertise),
+            tags = COALESCE($13, tags),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -159,6 +251,9 @@ pub async fn update(
     .bind(&input.machine_type)
     .bind(&input.wallet_address)
     .bind(&input.vm_id)
+    .bind(&input.listing_status)
+    .bind(&input.expertise)
+    .bind(&input.tags)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".into()))?;

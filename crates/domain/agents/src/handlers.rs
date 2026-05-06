@@ -4,7 +4,7 @@ use uuid::Uuid;
 use aura_network_core::AppError;
 
 use crate::models::{Agent, CreateAgentRequest, UpdateAgentRequest};
-use crate::repo;
+use crate::repo::{self, ListFilters};
 
 pub async fn create_agent(
     pool: &PgPool,
@@ -17,9 +17,9 @@ pub async fn create_agent(
 pub async fn list_agents(
     pool: &PgPool,
     user_id: Uuid,
-    org_id: Option<Uuid>,
+    filters: ListFilters,
 ) -> Result<Vec<Agent>, AppError> {
-    repo::list(pool, user_id, org_id).await
+    repo::list(pool, user_id, &filters).await
 }
 
 pub async fn get_agent(pool: &PgPool, agent_id: Uuid) -> Result<Agent, AppError> {

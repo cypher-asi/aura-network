@@ -3,6 +3,7 @@ use axum::Json;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use aura_network_agents::repo::ListFilters;
 use aura_network_agents::{handlers, models};
 use aura_network_auth::AuthUser;
 use aura_network_core::AppError;
@@ -12,6 +13,16 @@ use crate::state::AppState;
 #[derive(Debug, Deserialize)]
 pub struct AgentListQuery {
     pub org_id: Option<Uuid>,
+    /// Marketplace mode: when set to `"hireable"`, the response is the
+    /// cross-user marketplace view (unscoped from the caller). Any
+    /// other value is rejected by [`repo::list`].
+    pub listing_status: Option<String>,
+    /// Restrict marketplace results to a single expertise slug.
+    pub expertise: Option<String>,
+    /// `trending` (default) | `latest` | `revenue` | `reputation`.
+    pub sort: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,10 +97,39 @@ pub async fn list_agents(
     // agents just by guessing UUIDs. `get_member` returns
     // `AppError::Forbidden("Not a member of this organization")` on
     // miss, which propagates to a clean 403 for the caller.
+    //
+    // The marketplace branch (`listing_status = "hireable"`) doesn't
+    // need this gate: the SQL filter only returns rows whose owners
+    // intentionally published them, and we strip per-row sensitive
+    // fields below for non-owners.
     if let Some(org_id) = query.org_id {
         aura_network_orgs::repo::get_member(&state.pool, org_id, user.id).await?;
     }
-    let agents = handlers::list_agents(&state.pool, user.id, query.org_id).await?;
+    let is_marketplace = query.listing_status.as_deref() == Some("hireable");
+    let filters = ListFilters {
+        org_id: query.org_id,
+        listing_status: query.listing_status,
+        expertise: query.expertise,
+        sort: query.sort,
+        limit: query.limit,
+        offset: query.offset,
+    };
+    let mut agents = handlers::list_agents(&state.pool, user.id, filters).await?;
+
+    // Strip sensitive fields when crossing user boundaries. Mirrors
+    // `get_agent`'s behaviour for non-owners. We only do this in the
+    // marketplace mode because the legacy caller-scoped / org-scoped
+    // paths are not new behaviour and changing them would be a
+    // semantic shift outside the scope of this change.
+    if is_marketplace {
+        for agent in agents.iter_mut() {
+            if agent.user_id != user.id {
+                agent.system_prompt = None;
+                agent.wallet_address = None;
+                agent.vm_id = None;
+            }
+        }
+    }
     Ok(Json(agents))
 }
 
