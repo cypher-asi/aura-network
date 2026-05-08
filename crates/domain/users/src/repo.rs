@@ -16,8 +16,8 @@ pub async fn upsert_from_token(
         INSERT INTO users (zero_user_id, display_name, profile_image, primary_zid)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (zero_user_id) DO UPDATE SET
-            profile_image = EXCLUDED.profile_image,
-            primary_zid = EXCLUDED.primary_zid,
+            profile_image = COALESCE(EXCLUDED.profile_image, users.profile_image),
+            primary_zid = COALESCE(EXCLUDED.primary_zid, users.primary_zid),
             last_login_at = NOW(),
             updated_at = NOW()
         RETURNING *
@@ -37,7 +37,7 @@ pub async fn upsert_from_token(
         VALUES ('user', $1, $2, $3)
         ON CONFLICT (user_id) WHERE profile_type = 'user' AND user_id IS NOT NULL DO UPDATE SET
             display_name = EXCLUDED.display_name,
-            avatar = EXCLUDED.avatar,
+            avatar = COALESCE(EXCLUDED.avatar, profiles.avatar),
             updated_at = NOW()
         "#,
     )
