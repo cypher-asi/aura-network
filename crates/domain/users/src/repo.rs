@@ -79,7 +79,7 @@ pub async fn update(
         }
     }
 
-    sqlx::query_as::<_, User>(
+    let user = sqlx::query_as::<_, User>(
         r#"
         UPDATE users SET
             display_name = COALESCE($2, display_name),
@@ -100,7 +100,28 @@ pub async fn update(
     .bind(&input.website)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| AppError::NotFound("User not found".into()))
+    .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    // Keep profiles.avatar in sync with users.profile_image so the
+    // leaderboard (which reads from profiles) reflects avatar changes.
+    if input.display_name.is_some() || input.profile_image.is_some() {
+        sqlx::query(
+            r#"
+            UPDATE profiles SET
+                display_name = COALESCE($2, display_name),
+                avatar = COALESCE($3, avatar),
+                updated_at = NOW()
+            WHERE user_id = $1 AND profile_type = 'user'
+            "#,
+        )
+        .bind(user_id)
+        .bind(&input.display_name)
+        .bind(&input.profile_image)
+        .execute(pool)
+        .await?;
+    }
+
+    Ok(user)
 }
 
 pub async fn get_profile(pool: &PgPool, profile_id: Uuid) -> Result<Profile, AppError> {
