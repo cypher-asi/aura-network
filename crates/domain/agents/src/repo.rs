@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use aura_network_core::AppError;
 
-use crate::models::{Agent, CreateAgentRequest, UpdateAgentRequest};
+use crate::models::{default_permissions, Agent, CreateAgentRequest, UpdateAgentRequest};
 
 const MAX_LIST_LIMIT: i64 = 100;
 const DEFAULT_LIST_LIMIT: i64 = 50;
@@ -57,14 +57,18 @@ pub async fn create(
 
     let expertise = input.expertise.clone().unwrap_or_default();
     let tags = input.tags.clone().unwrap_or_default();
+    let permissions = input
+        .permissions
+        .clone()
+        .unwrap_or_else(default_permissions);
 
     let agent = sqlx::query_as::<_, Agent>(
         r#"
         INSERT INTO agents (
             user_id, org_id, name, role, personality, system_prompt, skills, icon,
-            machine_type, listing_status, expertise, tags
+            machine_type, listing_status, expertise, tags, permissions
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *
         "#,
     )
@@ -80,6 +84,7 @@ pub async fn create(
     .bind(listing_status)
     .bind(&expertise)
     .bind(&tags)
+    .bind(&permissions)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -233,6 +238,7 @@ pub async fn update(
             listing_status = COALESCE($11, listing_status),
             expertise = COALESCE($12, expertise),
             tags = COALESCE($13, tags),
+            permissions = COALESCE($14, permissions),
             updated_at = NOW()
         WHERE id = $1
         RETURNING *
@@ -251,6 +257,7 @@ pub async fn update(
     .bind(&input.listing_status)
     .bind(&input.expertise)
     .bind(&input.tags)
+    .bind(&input.permissions)
     .fetch_optional(pool)
     .await?
     .ok_or_else(|| AppError::NotFound("Agent not found".into()))?;

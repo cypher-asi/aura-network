@@ -1,6 +1,18 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use uuid::Uuid;
+
+pub fn default_permissions() -> serde_json::Value {
+    json!({
+        "scope": {
+            "orgs": [],
+            "projects": [],
+            "agent_ids": []
+        },
+        "capabilities": []
+    })
+}
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
@@ -13,6 +25,7 @@ pub struct Agent {
     pub personality: Option<String>,
     pub system_prompt: Option<String>,
     pub skills: serde_json::Value,
+    pub permissions: serde_json::Value,
     pub icon: Option<String>,
     pub machine_type: String,
     pub wallet_address: Option<String>,
@@ -46,6 +59,8 @@ pub struct CreateAgentRequest {
     pub personality: Option<String>,
     pub system_prompt: Option<String>,
     pub skills: Option<Vec<String>>,
+    #[serde(default)]
+    pub permissions: Option<serde_json::Value>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
     /// `"closed"` or `"hireable"`. Defaults to `"closed"` when omitted.
@@ -62,6 +77,7 @@ pub struct UpdateAgentRequest {
     pub personality: Option<String>,
     pub system_prompt: Option<String>,
     pub skills: Option<Vec<String>>,
+    pub permissions: Option<serde_json::Value>,
     pub icon: Option<String>,
     pub machine_type: Option<String>,
     /// Patch-style: `None` leaves the stored value, `Some("hireable")`

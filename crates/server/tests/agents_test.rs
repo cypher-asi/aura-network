@@ -2,6 +2,43 @@ mod common;
 
 use serde_json::json;
 
+fn sample_permissions() -> serde_json::Value {
+    json!({
+        "scope": {
+            "orgs": ["org-1"],
+            "projects": ["project-1"],
+            "agent_ids": []
+        },
+        "capabilities": [
+            { "type": "spawnAgent" },
+            { "type": "readProject", "id": "project-1" }
+        ],
+        "tool_permissions": {
+            "per_tool": {
+                "shell.exec": "ask"
+            }
+        }
+    })
+}
+
+fn updated_permissions() -> serde_json::Value {
+    json!({
+        "scope": {
+            "orgs": ["org-1"],
+            "projects": ["project-1"],
+            "agent_ids": ["agent-1"]
+        },
+        "capabilities": [
+            { "type": "writeProject", "id": "project-1" }
+        ],
+        "tool_permissions": {
+            "per_tool": {
+                "shell.exec": "off"
+            }
+        }
+    })
+}
+
 #[sqlx::test(migrations = "../db/migrations")]
 async fn create_agent(pool: sqlx::PgPool) {
     let app = common::spawn_app(pool).await;
@@ -27,6 +64,43 @@ async fn create_agent(pool: sqlx::PgPool) {
     assert_eq!(body["name"], "Test Agent");
     assert_eq!(body["role"], "developer");
     assert!(body["id"].is_string());
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
+async fn create_agent_persists_permissions(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt = common::test_jwt("user-1");
+    let permissions = sample_permissions();
+
+    let res = app
+        .post_authed("/api/agents", &jwt)
+        .body(
+            json!({
+                "name": "Permissioned Agent",
+                "permissions": permissions,
+            })
+            .to_string(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["permissions"], permissions);
+
+    let agent_id = body["id"].as_str().unwrap();
+    let get_res = app
+        .get_authed(&format!("/api/agents/{agent_id}"), &jwt)
+        .send()
+        .await
+        .unwrap();
+    let fetched: serde_json::Value = get_res.json().await.unwrap();
+    assert_eq!(fetched["permissions"], permissions);
+
+    let list_res = app.get_authed("/api/agents", &jwt).send().await.unwrap();
+    let agents: Vec<serde_json::Value> = list_res.json().await.unwrap();
+    assert_eq!(agents[0]["permissions"], permissions);
 }
 
 #[sqlx::test(migrations = "../db/migrations")]
@@ -144,6 +218,87 @@ async fn update_agent(pool: sqlx::PgPool) {
     assert_eq!(res.status(), 200);
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["name"], "Updated");
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
+async fn update_agent_persists_permissions(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt = common::test_jwt("user-1");
+    let initial = sample_permissions();
+    let updated = updated_permissions();
+
+    let create_res = app
+        .post_authed("/api/agents", &jwt)
+        .body(
+            json!({
+                "name": "Permissioned",
+                "permissions": initial,
+            })
+            .to_string(),
+        )
+        .send()
+        .await
+        .unwrap();
+    let agent: serde_json::Value = create_res.json().await.unwrap();
+    let agent_id = agent["id"].as_str().unwrap();
+
+    let res = app
+        .put_authed(&format!("/api/agents/{agent_id}"), &jwt)
+        .body(
+            json!({
+                "permissions": updated,
+            })
+            .to_string(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["permissions"], updated);
+
+    let get_res = app
+        .get_authed(&format!("/api/agents/{agent_id}"), &jwt)
+        .send()
+        .await
+        .unwrap();
+    let fetched: serde_json::Value = get_res.json().await.unwrap();
+    assert_eq!(fetched["permissions"], updated);
+}
+
+#[sqlx::test(migrations = "../db/migrations")]
+async fn update_agent_without_permissions_preserves_existing_bundle(pool: sqlx::PgPool) {
+    let app = common::spawn_app(pool).await;
+    let jwt = common::test_jwt("user-1");
+    let permissions = sample_permissions();
+
+    let create_res = app
+        .post_authed("/api/agents", &jwt)
+        .body(
+            json!({
+                "name": "Permissioned",
+                "permissions": permissions,
+            })
+            .to_string(),
+        )
+        .send()
+        .await
+        .unwrap();
+    let agent: serde_json::Value = create_res.json().await.unwrap();
+    let agent_id = agent["id"].as_str().unwrap();
+
+    let res = app
+        .put_authed(&format!("/api/agents/{agent_id}"), &jwt)
+        .body(json!({ "name": "Renamed" }).to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    let body: serde_json::Value = res.json().await.unwrap();
+    assert_eq!(body["name"], "Renamed");
+    assert_eq!(body["permissions"], permissions);
 }
 
 #[sqlx::test(migrations = "../db/migrations")]

@@ -503,6 +503,19 @@ Requires `ZOS_API_URL` and `ZOS_API_INTERNAL_TOKEN` env vars to be set for autom
   "personality": "string (optional)",
   "systemPrompt": "string (optional)",
   "skills": ["string"] (optional),
+  "permissions": {
+    "scope": {
+      "orgs": ["string"],
+      "projects": ["string"],
+      "agent_ids": ["string"]
+    },
+    "capabilities": [{"type": "string"}],
+    "tool_permissions": {
+      "per_tool": {
+        "tool.name": "on | off | ask"
+      }
+    }
+  } (optional),
   "icon": "string (optional)",
   "machineType": "local | remote (optional, default: local)"
 }
@@ -520,6 +533,7 @@ Requires `ZOS_API_URL` and `ZOS_API_INTERNAL_TOKEN` env vars to be set for autom
   "personality": "string | null",
   "systemPrompt": "string | null",
   "skills": ["string"],
+  "permissions": "object",
   "icon": "string | null",
   "machineType": "local | remote",
   "walletAddress": "string | null (auto-created EIP7702 wallet address)",
@@ -587,6 +601,7 @@ Updates an agent.
   "personality": "string (optional)",
   "systemPrompt": "string (optional)",
   "skills": ["string"] (optional),
+  "permissions": "object (optional)",
   "icon": "string (optional)",
   "machineType": "local | remote (optional)",
   "walletAddress": "string (optional)",
